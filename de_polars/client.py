@@ -614,6 +614,45 @@ class DataExportsPolars:
         
         print("🔌 DuckDB S3 connection configured")
     
+    def _safe_pandas_to_polars_conversion(self, df) -> pl.DataFrame:
+        """
+        Safely convert pandas DataFrame to Polars DataFrame, handling problematic struct columns.
+        """
+        import pandas as pd
+        import json
+        
+        try:
+            # First, try direct conversion
+            return pl.from_pandas(df)
+        except Exception as e:
+            if "StructArray must contain at least one field" in str(e):
+                print("🔧 Handling empty struct columns...")
+                
+                # Create a copy to avoid modifying original
+                df_clean = df.copy()
+                
+                # Convert problematic struct/object columns to JSON strings
+                for col in df_clean.columns:
+                    if df_clean[col].dtype == 'object':
+                        try:
+                            # Check if this column contains struct-like data
+                            sample_val = df_clean[col].dropna().iloc[0] if not df_clean[col].dropna().empty else None
+                            if isinstance(sample_val, dict) or (isinstance(sample_val, str) and sample_val.startswith('{')):
+                                print(f"   🔧 Converting struct column '{col}' to JSON string")
+                                df_clean[col] = df_clean[col].apply(
+                                    lambda x: json.dumps(x) if x is not None and x != '' else None
+                                )
+                        except:
+                            # If we can't determine the type, convert to string
+                            print(f"   🔧 Converting problematic column '{col}' to string")
+                            df_clean[col] = df_clean[col].astype(str).replace('nan', None)
+                
+                # Try conversion again
+                return pl.from_pandas(df_clean)
+            else:
+                # Re-raise if it's a different error
+                raise
+    
     def _register_data_with_duckdb(self, conn: duckdb.DuckDBPyConnection) -> None:
         """Register data files with DuckDB as a table."""
         files = self._discover_data_files()
@@ -706,13 +745,26 @@ class DataExportsPolars:
             
             # Execute query
             print(f"📊 Running query: {sql[:100]}{'...' if len(sql) > 100 else ''}")
-            result = conn.execute(sql).fetchdf()
             
-            # Convert pandas DataFrame to Polars DataFrame
-            polars_result = pl.from_pandas(result)
-            
-            print(f"✅ Query completed: {polars_result.shape[0]} rows, {polars_result.shape[1]} columns")
-            return polars_result
+            # Use Arrow format for better handling of complex data types
+            try:
+                # Try Arrow format first (best for complex data types)
+                result_arrow = conn.execute(sql).fetch_arrow_table()
+                polars_result = pl.from_arrow(result_arrow)
+                print(f"✅ Query completed (Arrow): {polars_result.shape[0]} rows, {polars_result.shape[1]} columns")
+                return polars_result
+                
+            except Exception as arrow_error:
+                print(f"⚠️  Arrow conversion failed: {str(arrow_error)[:100]}...")
+                print("🔄 Falling back to pandas conversion with struct handling...")
+                
+                # Fallback: pandas with struct column handling
+                result_df = conn.execute(sql).fetchdf()
+                
+                # Handle problematic struct columns
+                polars_result = self._safe_pandas_to_polars_conversion(result_df)
+                print(f"✅ Query completed (pandas): {polars_result.shape[0]} rows, {polars_result.shape[1]} columns")
+                return polars_result
             
         except Exception as e:
             print(f"❌ DuckDB query error: {str(e)}")
