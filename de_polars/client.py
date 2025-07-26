@@ -781,8 +781,28 @@ class DataExportsPolars:
             Dictionary mapping column names to data types
         """
         if self._schema_cache is None:
-            data = self._get_data()
-            self._schema_cache = dict(data.schema)
+            print("📋 Getting schema information using DuckDB...")
+            
+            # Use DuckDB to get schema information
+            conn = self._get_duckdb_connection()
+            
+            try:
+                # Register data with DuckDB
+                self._register_data_with_duckdb(conn)
+                
+                # Get schema using DuckDB DESCRIBE
+                schema_result = conn.execute(f"DESCRIBE {self.table_name}").fetchdf()
+                
+                # Convert to dictionary format {column_name: data_type}
+                self._schema_cache = dict(zip(schema_result['column_name'], schema_result['column_type']))
+                print(f"✅ Schema retrieved: {len(self._schema_cache)} columns")
+                
+            except Exception as e:
+                print(f"❌ Schema error: {str(e)}")
+                raise
+            finally:
+                conn.close()
+                
         return self._schema_cache
     
     def catalog(self) -> Dict[str, Any]:
@@ -792,14 +812,22 @@ class DataExportsPolars:
         Returns:
             Dictionary with file count, columns, and other metadata
         """
+        print("📊 Building data catalog...")
+        
         files = self._discover_data_files()
         schema = self.schema()
         
-        # Extract date range from file paths
+        # Extract date range from file paths based on export type
         import re
         dates = []
         for file in files:
-            match = re.search(r'BILLING_PERIOD=(\d{4}-\d{2})', file)
+            if self.data_export_type == 'COH':
+                # COH uses daily format: date=2025-07-15
+                match = re.search(rf'{re.escape(self.partition_format)}=(\d{{4}}-\d{{2}}-\d{{2}})', file)
+            else:
+                # Other exports use monthly format: BILLING_PERIOD=2025-07 or billing_period=2025-07
+                match = re.search(rf'{re.escape(self.partition_format)}=(\d{{4}}-\d{{2}})', file)
+            
             if match:
                 dates.append(match.group(1))
         
@@ -811,7 +839,7 @@ class DataExportsPolars:
         common_columns = [col for col in columns if any(keyword in col.lower() 
                          for keyword in ['date', 'time', 'service', 'region', 'account'])]
         
-        return {
+        catalog_info = {
             'total_files': len(files),
             'columns': columns,
             'column_count': len(columns),
@@ -819,8 +847,13 @@ class DataExportsPolars:
             'cost_columns': cost_columns,
             'common_columns': common_columns,
             'table_name': self.table_name,
-            'data_type': self._detect_data_type()
+            'data_type': self._detect_data_type(),
+            'data_export_type': self.data_export_type,
+            'partition_format': self.partition_format
         }
+        
+        print(f"✅ Catalog built: {catalog_info['total_files']} files, {catalog_info['column_count']} columns")
+        return catalog_info
     
     def _detect_data_type(self) -> str:
         """Detect the type of AWS Data Export based on columns."""
@@ -848,20 +881,28 @@ class DataExportsPolars:
         Returns:
             Polars DataFrame with sample data
         """
-        data = self._get_data()
-        return data.limit(n).collect()
+        print(f"📊 Getting sample of {n} rows using DuckDB...")
+        return self.query(f"SELECT * FROM {self.table_name} LIMIT {n}")
     
     def info(self) -> None:
         """Print summary information about the dataset."""
         catalog = self.catalog()
-        print(f"📊 AWS Data Exports Summary")
-        print(f"   Data Type: {catalog['data_type']}")
-        print(f"   Table Name: {catalog['table_name']}")
-        print(f"   Files: {catalog['total_files']}")
-        print(f"   Columns: {catalog['column_count']}")
-        print(f"   Date Range: {catalog['date_range']}")
-        print(f"   S3 Location: s3://{self.s3_bucket}/{self.s3_prefix}")
+        print(f"\n📊 AWS Data Exports Summary")
+        print(f"   📋 Data Export Type: {catalog['data_export_type']}")
+        print(f"   🎯 Data Type: {catalog['data_type']}")
+        print(f"   📋 Table Name: {catalog['table_name']}")
+        print(f"   📁 Files: {catalog['total_files']}")
+        print(f"   📊 Columns: {catalog['column_count']}")
+        print(f"   📅 Date Range: {catalog['date_range']}")
+        print(f"   📂 S3 Location: s3://{self.s3_bucket}/{self.s3_data_prefix}/")
+        print(f"   📁 Partition Format: {catalog['partition_format']}=...")
         
         if catalog['cost_columns']:
-            print(f"   Cost Columns: {len(catalog['cost_columns'])}")
-            print(f"   Sample Cost Columns: {catalog['cost_columns'][:3]}") 
+            print(f"   💰 Cost Columns: {len(catalog['cost_columns'])}")
+            print(f"   💰 Sample Cost Columns: {catalog['cost_columns'][:3]}")
+        
+        if catalog['common_columns']:
+            print(f"   🔧 Common Columns: {len(catalog['common_columns'])}")
+            print(f"   🔧 Sample Common Columns: {catalog['common_columns'][:3]}")
+        
+        print(f"\n✅ Dataset ready for DuckDB SQL queries!") 
