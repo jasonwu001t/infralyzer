@@ -1,17 +1,14 @@
 """
 Enhanced Data Partitioner with SQL Query Library Support
 
-Supports both simple examples and advanced analytics table creation from cur2_query_library.
+Supports SQL query execution from cur2_query_library and saves results as local parquet files.
 Can create partitioned folders and parquet files based on SQL queries.
 """
 
 import polars as pl
-import tempfile
 import os
-import glob
 from pathlib import Path
-from typing import Optional, Dict, List, Union
-from .auth import get_boto3_client, get_storage_options
+from typing import Optional, Dict, List
 from .client import DataExportsPolars
 
 
@@ -19,80 +16,45 @@ class DataPartitioner:
     """Enhanced data partitioner with SQL query library support."""
     
     def __init__(self, 
-                 source_client: DataExportsPolars,
-                 target_bucket: str,
-                 target_prefix: str = "analytics-data",
-                 query_library_path: str = "cur2_query_library",
-                 aws_region: Optional[str] = None,
-                 aws_access_key_id: Optional[str] = None,
-                 aws_secret_access_key: Optional[str] = None,
-                 aws_session_token: Optional[str] = None,
-                 aws_profile: Optional[str] = None):
+                 source_client: Optional[DataExportsPolars] = None,
+                 output_base_dir: str = "cur2_data",
+                 query_library_path: str = "cur2_query_library"):
         """
         Initialize the enhanced data partitioner.
         
         Args:
-            source_client: DataExportsPolars client for source data
-            target_bucket: S3 bucket for storing analytics tables
-            target_prefix: S3 prefix for analytics data
-            query_library_path: Path to SQL query library
-            aws_region: AWS region
-            aws_access_key_id: AWS access key
-            aws_secret_access_key: AWS secret key
-            aws_session_token: AWS session token
-            aws_profile: AWS profile name
+            source_client: DataExportsPolars client for source data (optional for file listing)
+            output_base_dir: Base directory for storing parquet files (default: "cur2_data")
+            query_library_path: Path to SQL query library (default: "cur2_query_library")
         """
         self.source_client = source_client
-        self.target_bucket = target_bucket
-        self.target_prefix = target_prefix.rstrip('/')
+        self.output_base_dir = Path(output_base_dir)
         self.query_library_path = Path(query_library_path)
-        self.aws_region = aws_region
-        self.aws_access_key_id = aws_access_key_id
-        self.aws_secret_access_key = aws_secret_access_key
-        self.aws_session_token = aws_session_token
-        self.aws_profile = aws_profile
-    
-    def _get_s3_client(self):
-        """Get boto3 S3 client using shared auth."""
-        return get_boto3_client(
-            service_name='s3',
-            aws_region=self.aws_region,
-            aws_access_key_id=self.aws_access_key_id,
-            aws_secret_access_key=self.aws_secret_access_key,
-            aws_session_token=self.aws_session_token,
-            aws_profile=self.aws_profile
-        )
-    
-    def _save_to_s3(self, dataframe: pl.DataFrame, s3_key_path: str) -> str:
-        """Save dataframe to S3 as parquet with full S3 key path."""
-        with tempfile.NamedTemporaryFile(suffix='.parquet', delete=False) as tmp_file:
-            tmp_path = tmp_file.name
         
-        try:
-            # Write to parquet with snappy compression
-            dataframe.write_parquet(tmp_path, compression='snappy')
-            
-            # Upload to S3
-            s3_key = f"{self.target_prefix}/{s3_key_path}"
-            s3_path = f"s3://{self.target_bucket}/{s3_key}"
-            
-            s3_client = self._get_s3_client()
-            s3_client.upload_file(tmp_path, self.target_bucket, s3_key)
-            
-            # Calculate file size
-            file_size_mb = os.path.getsize(tmp_path) / (1024 * 1024)
-            
-            print(f"✅ Saved analytics table: {len(dataframe):,} rows, {file_size_mb:.1f}MB")
-            print(f"   📂 S3 Path: {s3_path}")
-            
-            return s3_path
-            
-        finally:
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
+        # Ensure output directory exists (only if we have a real output dir)
+        if output_base_dir != "temp":
+            self.output_base_dir.mkdir(exist_ok=True)
+    
+    def _save_to_parquet(self, dataframe: pl.DataFrame, output_path: Path) -> str:
+        """Save dataframe to local parquet file."""
+        # Ensure parent directory exists
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Write to parquet with snappy compression
+        dataframe.write_parquet(output_path, compression='snappy')
+        
+        # Calculate file size
+        file_size_mb = output_path.stat().st_size / (1024 * 1024)
+        
+        print(f"✅ Saved: {len(dataframe):,} rows, {file_size_mb:.1f}MB")
+        print(f"   📂 Path: {output_path}")
+        
+        return str(output_path)
     
     def discover_sql_files(self) -> Dict[str, List[str]]:
         """Discover all SQL files in the query library organized by category."""
+        import glob
+        
         categories = {}
         
         if not self.query_library_path.exists():
@@ -140,38 +102,29 @@ class DataPartitioner:
         
         return metadata
     
-    def create_analytics_table(self, 
-                              query_path: str, 
-                              table_name: Optional[str] = None,
-                              partitioned: bool = False,
-                              partition_columns: Optional[List[str]] = None) -> str:
+    def run_sql_file(self, sql_file_path: str) -> str:
         """
-        Create an analytics table from a SQL query file.
+        Run a SQL file and save results as parquet.
         
         Args:
-            query_path: Relative path to SQL file (e.g., 'cost_analysis/cost_by_service.sql')
-            table_name: Name for the analytics table (defaults to query filename)
-            partitioned: Whether to create partitioned output
-            partition_columns: Columns to partition by
+            sql_file_path: Relative path to SQL file (e.g., 'analytics/amazon_athena.sql')
         
         Returns:
-            S3 path of created analytics table
+            Path to created parquet file
         """
-        print(f"🔨 Creating Analytics Table from: {query_path}")
+        if self.source_client is None:
+            raise ValueError("Source client is required for running SQL files")
+            
+        print(f"🔨 Running SQL File: {sql_file_path}")
         print("=" * 60)
         
         # Load and execute SQL query
-        sql_content = self.load_sql_query(query_path)
+        sql_content = self.load_sql_query(sql_file_path)
         metadata = self.extract_query_metadata(sql_content)
         
         if 'description' in metadata:
             print(f"📝 Description: {metadata['description']}")
         
-        # Default table name from filename
-        if table_name is None:
-            table_name = Path(query_path).stem
-        
-        print(f"📊 Table Name: {table_name}")
         print(f"📄 Query: {len(sql_content)} characters")
         print()
         
@@ -181,170 +134,56 @@ class DataPartitioner:
         print(f"✅ Query completed: {len(result_df):,} rows × {len(result_df.columns)} columns")
         print()
         
-        # Create partitioned or single table
-        if partitioned and partition_columns:
-            return self._create_partitioned_table(result_df, table_name, partition_columns)
-        else:
-            # Single analytics table
-            s3_key = f"{table_name}/{table_name}.parquet"
-            return self._save_to_s3(result_df, s3_key)
+        # Create output path maintaining directory structure
+        sql_path = Path(sql_file_path)
+        output_path = self.output_base_dir / sql_path.parent / f"{sql_path.stem}.parquet"
+        
+        # Save to parquet
+        return self._save_to_parquet(result_df, output_path)
     
-    def _create_partitioned_table(self, 
-                                 dataframe: pl.DataFrame, 
-                                 table_name: str, 
-                                 partition_columns: List[str]) -> List[str]:
-        """Create partitioned analytics table based on specified columns."""
-        print(f"🗂️ Creating partitioned table by: {', '.join(partition_columns)}")
-        
-        s3_paths = []
-        
-        # Group by partition columns
-        for partition_values in dataframe.select(partition_columns).unique().iter_rows():
-            # Create filter condition
-            filter_condition = None
-            partition_path_parts = []
-            
-            for col, value in zip(partition_columns, partition_values):
-                condition = (pl.col(col) == value)
-                filter_condition = condition if filter_condition is None else filter_condition & condition
-                partition_path_parts.append(f"{col}={value}")
-            
-            # Filter data for this partition
-            partition_data = dataframe.filter(filter_condition)
-            
-            # Create S3 key with partition structure
-            partition_path = "/".join(partition_path_parts)
-            s3_key = f"{table_name}/{partition_path}/{table_name}.parquet"
-            
-            # Save partition
-            if len(partition_data) > 0:
-                s3_path = self._save_to_s3(partition_data, s3_key)
-                s3_paths.append(s3_path)
-                print(f"   📁 Partition {partition_path}: {len(partition_data):,} rows")
-        
-        print(f"✅ Created {len(s3_paths)} partitions for {table_name}")
-        return s3_paths
-    
-    def create_analytics_from_category(self, 
-                                      category: str, 
-                                      partitioned: bool = False) -> Dict[str, str]:
+    def run_sql_files(self, sql_file_paths: List[str]) -> Dict[str, str]:
         """
-        Create analytics tables for all queries in a category.
+        Run multiple SQL files and save results as parquet files.
         
         Args:
-            category: Category name (e.g., 'cost_analysis')
-            partitioned: Whether to create partitioned tables
+            sql_file_paths: List of relative paths to SQL files
         
         Returns:
-            Dict mapping query names to S3 paths
+            Dict mapping SQL file paths to output parquet paths
         """
-        categories = self.discover_sql_files()
-        
-        if category not in categories:
-            raise ValueError(f"Category not found: {category}. Available: {list(categories.keys())}")
-        
-        print(f"🏭 Creating Analytics Tables for Category: {category}")
-        print(f"📁 Found {len(categories[category])} queries")
+        if self.source_client is None:
+            raise ValueError("Source client is required for running SQL files")
+            
+        print(f"🏭 Running {len(sql_file_paths)} SQL Files")
         print("=" * 80)
         print()
         
-        analytics_tables = {}
+        results = {}
         
-        for query_file in sorted(categories[category]):
-            table_name = Path(query_file).stem
-            
-            # Determine partitioning strategy based on query type
-            partition_columns = self._get_default_partition_columns(category, table_name)
+        for i, sql_file_path in enumerate(sql_file_paths, 1):
+            print(f"[{i}/{len(sql_file_paths)}] Processing: {sql_file_path}")
             
             try:
-                s3_path = self.create_analytics_table(
-                    query_file, 
-                    table_name, 
-                    partitioned and partition_columns is not None,
-                    partition_columns
-                )
-                analytics_tables[table_name] = s3_path
+                output_path = self.run_sql_file(sql_file_path)
+                results[sql_file_path] = output_path
                 print()
                 
             except Exception as e:
-                print(f"❌ Failed to create table {table_name}: {str(e)}")
+                print(f"❌ Failed to process {sql_file_path}: {str(e)}")
                 print()
         
-        print(f"🎉 Category Summary: {category}")
-        print(f"   ✅ Successful: {len(analytics_tables)}")
-        print(f"   ❌ Failed: {len(categories[category]) - len(analytics_tables)}")
+        print(f"🎉 Summary:")
+        print(f"   ✅ Successful: {len(results)}")
+        print(f"   ❌ Failed: {len(sql_file_paths) - len(results)}")
         print()
         
-        return analytics_tables
+        return results
     
-    def _get_default_partition_columns(self, category: str, table_name: str) -> Optional[List[str]]:
-        """Get default partition columns based on category and table name."""
-        partition_strategies = {
-            'cost_analysis': {
-                'cost_by_service': ['service'],
-                'cost_by_region': ['region'],
-                'cost_by_account': ['account_id']
-            },
-            'resource_analysis': {
-                'top_resources_by_cost': ['service', 'cost_tier'],
-                'unused_resources': ['service', 'utilization_status']
-            },
-            'optimization': {
-                'ri_utilization': ['service', 'utilization_category']
-            },
-            'time_series': {
-                'daily_cost_trends': ['year', 'month'],
-                'monthly_trends': ['year']
-            }
-        }
-        
-        return partition_strategies.get(category, {}).get(table_name)
-    
-    def create_all_analytics_tables(self, partitioned: bool = False) -> Dict[str, Dict[str, str]]:
-        """
-        Create analytics tables for all categories.
-        
-        Args:
-            partitioned: Whether to create partitioned tables
-        
-        Returns:
-            Nested dict with category -> table_name -> s3_path
-        """
+    def list_available_sql_files(self):
+        """List all SQL files and their potential analytics tables."""
         categories = self.discover_sql_files()
         
-        print(f"🏭 Creating All Analytics Tables")
-        print(f"📂 Found {len(categories)} categories")
-        print(f"📄 Total queries: {sum(len(files) for files in categories.values())}")
-        print("=" * 80)
-        print()
-        
-        all_analytics = {}
-        
-        for category in sorted(categories.keys()):
-            try:
-                category_tables = self.create_analytics_from_category(category, partitioned)
-                all_analytics[category] = category_tables
-            except Exception as e:
-                print(f"❌ Failed to process category {category}: {str(e)}")
-                all_analytics[category] = {}
-        
-        # Overall summary
-        total_tables = sum(len(cat_tables) for cat_tables in all_analytics.values())
-        total_queries = sum(len(files) for files in categories.values())
-        
-        print(f"🎉 Overall Summary:")
-        print(f"   📊 Total Analytics Tables Created: {total_tables}")
-        print(f"   📄 Total Queries Processed: {total_queries}")
-        print(f"   📂 Categories: {len(categories)}")
-        print(f"   📈 Success Rate: {(total_tables/total_queries*100):.1f}%")
-        
-        return all_analytics
-    
-    def list_analytics_opportunities(self):
-        """List all SQL queries and their potential analytics tables."""
-        categories = self.discover_sql_files()
-        
-        print(f"📊 Analytics Table Opportunities")
+        print(f"📊 Available SQL Files")
         print("=" * 60)
         
         if not categories:
@@ -353,11 +192,10 @@ class DataPartitioner:
         
         total_queries = 0
         for category, files in sorted(categories.items()):
-            print(f"\n📁 {category}/ ({len(files)} tables)")
+            print(f"\n📁 {category}/ ({len(files)} files)")
             
             for query_file in sorted(files):
                 table_name = Path(query_file).stem
-                partition_cols = self._get_default_partition_columns(category, table_name)
                 
                 print(f"   📊 {table_name}")
                 print(f"      📄 Source: {query_file}")
@@ -368,126 +206,9 @@ class DataPartitioner:
                     metadata = self.extract_query_metadata(sql_content)
                     if 'description' in metadata:
                         print(f"      💡 {metadata['description']}")
-                    if partition_cols:
-                        print(f"      🗂️ Default partitions: {', '.join(partition_cols)}")
                 except:
                     pass
                 
                 total_queries += 1
         
-        print(f"\n📈 Total Analytics Opportunities: {total_queries} tables across {len(categories)} categories")
-    
-    # Legacy simple examples (backward compatibility)
-    def example_1_sql_partition(self):
-        """Example 1: Use SQL to create a partition for high-cost items."""
-        print("📊 Example 1: SQL-based partitioning (Legacy)")
-        
-        # Use SQL to filter data
-        high_cost_df = self.source_client.query(f"""
-            SELECT *
-            FROM {self.source_client.table_name}
-            WHERE line_item_unblended_cost > 0.01
-            ORDER BY line_item_unblended_cost DESC
-        """)
-        
-        # Save to S3
-        s3_path = self._save_to_s3(high_cost_df, "legacy_examples/high_cost_items.parquet")
-        return s3_path
-    
-    def example_2_python_partition(self):
-        """Example 2: Use Python to create two partitions."""
-        print("📊 Example 2: Python-based partitioning (Legacy)")
-        
-        # Get all data
-        all_data = self.source_client.query(f"SELECT * FROM {self.source_client.table_name}")
-        
-        # Split into two dataframes using Python
-        s3_data = all_data.filter(pl.col('product_servicecode') == 'AmazonS3')
-        non_s3_data = all_data.filter(pl.col('product_servicecode') != 'AmazonS3')
-        
-        # Save both to S3
-        s3_path1 = self._save_to_s3(s3_data, "legacy_examples/s3_only.parquet")
-        s3_path2 = self._save_to_s3(non_s3_data, "legacy_examples/non_s3.parquet")
-        
-        return [s3_path1, s3_path2]
-
-
-def simple_example():
-    """Simple usage example with legacy functionality."""
-    from de_polars import DataExportsPolars
-    
-    # Load source data
-    source_data = DataExportsPolars(
-        s3_bucket='billing-data-exports-focus',
-        s3_data_prefix='focus1/focus1/data',
-        data_export_type='FOCUS1.0',
-        table_name='CUR'
-    )
-    
-    # Create partitioner
-    partitioner = DataPartitioner(
-        source_client=source_data,
-        target_bucket='billing-data-exports-focus',
-        target_prefix='analytics-tables'
-    )
-    
-    # Legacy examples
-    print("🔄 Legacy Examples:")
-    high_cost_path = partitioner.example_1_sql_partition()
-    s3_paths = partitioner.example_2_python_partition()
-    
-    print(f"\n🎉 Legacy partitions created:")
-    print(f"   High cost items: {high_cost_path}")
-    print(f"   S3 data: {s3_paths[0]}")
-    print(f"   Non-S3 data: {s3_paths[1]}")
-
-
-def analytics_example():
-    """Example using SQL query library to create analytics tables."""
-    from de_polars import DataExportsPolars
-    
-    # Load source data
-    source_data = DataExportsPolars(
-        s3_bucket='billing-data-exports-focus',
-        s3_data_prefix='focus1/focus1/data',
-        data_export_type='FOCUS1.0',
-        table_name='CUR',
-        date_start='2025-07',
-        date_end='2025-07'
-    )
-    
-    # Create enhanced partitioner
-    partitioner = DataPartitioner(
-        source_client=source_data,
-        target_bucket='billing-data-exports-focus',
-        target_prefix='analytics-tables',
-        query_library_path='cur2_query_library'
-    )
-    
-    # List available analytics opportunities
-    partitioner.list_analytics_opportunities()
-    print()
-    
-    # Create analytics tables for cost analysis category
-    print("🏭 Creating Cost Analysis Tables:")
-    cost_tables = partitioner.create_analytics_from_category('cost_analysis', partitioned=True)
-    
-    print(f"\n🎉 Created analytics tables:")
-    for table_name, s3_path in cost_tables.items():
-        print(f"   📊 {table_name}: {s3_path}")
-
-
-if __name__ == "__main__":
-    print("Choose example:")
-    print("1. Legacy simple example")
-    print("2. Analytics table example")
-    
-    choice = input("Enter choice (1 or 2): ").strip()
-    
-    if choice == "1":
-        simple_example()
-    elif choice == "2":
-        analytics_example()
-    else:
-        print("Invalid choice. Running analytics example...")
-        analytics_example() 
+        print(f"\n📈 Total SQL Files Available: {total_queries} files across {len(categories)} categories") 

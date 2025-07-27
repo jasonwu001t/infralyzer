@@ -173,6 +173,425 @@ pip install git+https://github.com/jasonwu001t/de-polars.git
 
 **Dependencies:** DuckDB 0.9.0+, Polars 0.18.0+, Boto3 1.26.0+
 
+## 🔄 SQL Query Runner
+
+The `sql_runner.py` script allows you to run SQL files from the `cur2_query_library` and save results as parquet files locally with matching directory structure.
+
+### 📁 Output Structure
+
+The SQL runner creates parquet files maintaining the same directory structure:
+
+```
+cur2_query_library/               # Input SQL files
+├── analytics/
+│   ├── amazon_athena.sql
+│   └── sample.sql
+└── compute/
+    └── lambda.sql
+
+cur2_data/                       # Output parquet files
+├── analytics/
+│   ├── amazon_athena.parquet
+│   └── sample.parquet
+└── compute/
+    └── lambda.parquet
+```
+
+### 🚀 Using the SQL Runner
+
+1. **Configure the script**: Edit `sql_runner.py` and update the configuration section:
+
+```python
+# AWS S3 settings for your data export
+S3_BUCKET = "your-bucket-name"          # Change this to your S3 bucket
+S3_DATA_PREFIX = "cur2/cur2/data"       # Change this to your data prefix
+DATA_EXPORT_TYPE = "CUR2.0"             # Change if using different export type
+
+# SQL files to run - modify this list
+SQL_FILES_TO_RUN = [
+    "analytics/amazon_athena.sql",
+    "compute/lambda.sql",
+    # Add more files here
+]
+
+# Output directory for parquet files
+OUTPUT_DIR = "cur2_data"
+```
+
+2. **List available SQL files**:
+
+```bash
+python sql_runner.py --list-files
+```
+
+3. **Run the SQL files**:
+
+```bash
+python sql_runner.py
+```
+
+### 📊 SQL File Examples
+
+**analytics/amazon_athena.sql**:
+
+```sql
+-- Amazon Athena Daily Cost and Usage Analysis
+-- Description: Daily unblended cost and usage information for Amazon Athena
+SELECT
+  bill_payer_account_id,
+  line_item_usage_account_id,
+  line_item_usage_start_date::date AS day_line_item_usage_start_date,
+  product['region'],
+  SUM(line_item_unblended_cost) AS sum_line_item_unblended_cost
+FROM CUR
+WHERE line_item_product_code = 'AmazonAthena'
+  AND line_item_line_item_type IN ('DiscountedUsage', 'Usage', 'SavingsPlanCoveredUsage')
+GROUP BY 1,2,3,4
+ORDER BY sum_line_item_unblended_cost DESC
+LIMIT 20
+```
+
+**compute/lambda.sql**:
+
+```sql
+-- Lambda Cost and Usage Analysis
+-- Description: Lambda cost breakdown by different usage elements
+SELECT
+  bill_payer_account_id,
+  product_region,
+  CASE
+    WHEN line_item_usage_type LIKE '%Lambda-GB-Second%' THEN 'Lambda GB x Sec.'
+    WHEN line_item_usage_type LIKE '%Request%' THEN 'Lambda Requests'
+    ELSE 'Other'
+  END AS usage_type,
+  SUM(line_item_unblended_cost) AS total_cost
+FROM CUR
+WHERE product_product_name = 'AWS Lambda'
+  AND line_item_line_item_type IN ('DiscountedUsage', 'Usage', 'SavingsPlanCoveredUsage')
+GROUP BY 1,2,3
+ORDER BY total_cost DESC
+LIMIT 10
+```
+
+### 🔧 DataPartitioner API
+
+For programmatic use, you can use the `DataPartitioner` class directly:
+
+```python
+from de_polars import DataExportsPolars
+from de_polars.data_partitioner import DataPartitioner
+
+# Set up data client
+data_client = DataExportsPolars(
+    s3_bucket='your-bucket',
+    s3_data_prefix='cur2/cur2/data',
+    data_export_type='CUR2.0'
+)
+
+# Set up partitioner
+partitioner = DataPartitioner(
+    source_client=data_client,
+    output_base_dir='cur2_data',
+    query_library_path='cur2_query_library'
+)
+
+# List available SQL files
+partitioner.list_available_sql_files()
+
+# Run a single SQL file
+output_path = partitioner.run_sql_file('analytics/amazon_athena.sql')
+print(f"Saved: {output_path}")
+
+# Run multiple SQL files
+results = partitioner.run_sql_files([
+    'analytics/amazon_athena.sql',
+    'compute/lambda.sql'
+])
+
+for sql_file, parquet_path in results.items():
+    print(f"{sql_file} -> {parquet_path}")
+```
+
+### 📋 DataPartitioner Methods
+
+| Method                       | Description                          | Example                                                 |
+| ---------------------------- | ------------------------------------ | ------------------------------------------------------- |
+| `list_available_sql_files()` | List all SQL files in query library  | `partitioner.list_available_sql_files()`                |
+| `run_sql_file(path)`         | Run single SQL file, save as parquet | `partitioner.run_sql_file('analytics/athena.sql')`      |
+| `run_sql_files(paths)`       | Run multiple SQL files               | `partitioner.run_sql_files(['file1.sql', 'file2.sql'])` |
+| `load_sql_query(path)`       | Load SQL content from file           | `partitioner.load_sql_query('analytics/athena.sql')`    |
+| `discover_sql_files()`       | Get SQL files organized by category  | `partitioner.discover_sql_files()`                      |
+
+## 🏗️ CUR2 View Partitioning
+
+**Advanced dependency-aware view processing for comprehensive cost optimization analysis.**
+
+The CUR2 View Partitioning system processes complex interdependent SQL views in the correct execution order, creating a comprehensive analytics dataset from your CUR data with all optimization recommendations and KPIs.
+
+### 🎯 What It Does
+
+- **Processes 14 specialized views** for cost optimization analysis
+- **Handles view dependencies** automatically (runs independent views first, then dependent ones)
+- **Creates comprehensive KPI datasets** including EC2 optimization, EBS analysis, instance recommendations, and more
+- **Saves everything as parquet files** for fast analytics and dashboards
+
+### 📊 View Categories
+
+**Level 1 - Independent Views (12 views):**
+
+- `account_map` - Account hierarchy and relationships
+- `summary_view` - Comprehensive cost summary with all dimensions
+- `s3_view` - S3 storage analysis and optimization
+- `ri_sp_mapping` - Reserved Instance and Savings Plan mappings
+- `resource_view` - Resource-level cost breakdowns
+- `hourly_view` - Hourly usage patterns and costs
+- `ec2_running_cost` - EC2 costs by purchase option
+- `compute_savings_plan_eligible_spend` - Compute SP eligibility analysis
+- `kpi_s3_storage_all` - S3 storage optimization KPIs
+- `kpi_ebs_snap` - EBS snapshot cost analysis
+- `kpi_ebs_storage_all` - EBS storage optimization recommendations
+- `kpi_instance_mapping` - Instance type mapping and optimization paths
+
+**Level 2 - Dependent Views (1 view):**
+
+- `kpi_instance_all` - Comprehensive instance optimization analysis (depends on `kpi_instance_mapping`)
+
+**Level 3 - Final Views (1 view):**
+
+- `kpi_tracker` - Master dashboard view combining all KPIs (depends on multiple Level 1 & 2 views)
+
+### 🚀 Quick Start
+
+**1. Run the complete partitioning pipeline:**
+
+```bash
+python cur2_view_partitioning.py
+```
+
+**2. Or use the example script:**
+
+```bash
+python example_run_views.py
+```
+
+**3. Or use programmatically:**
+
+```python
+from de_polars import DataExportsPolars
+from cur2_view_partitioning import CUR2ViewPartitioner
+
+# Initialize client with your CUR data
+client = DataExportsPolars(
+    s3_bucket='your-bucket',
+    s3_data_prefix='cur2/cur2/data',
+    data_export_type='CUR2.0',
+    date_start='2025-07'
+)
+
+# Initialize view partitioner
+partitioner = CUR2ViewPartitioner(
+    source_client=client,
+    views_base_dir='cur2_views',     # Where SQL view files are located
+    output_base_dir='cur2_view'      # Where parquet results will be saved
+)
+
+# Process all views in dependency order
+results = partitioner.run_all_views()
+
+print(f"✅ Processed {len(partitioner.processed_views)} views")
+print(f"📂 Results saved in: cur2_view/")
+```
+
+### 📁 Directory Structure
+
+**Input (SQL Views):**
+
+```
+cur2_views/
+├── level_1_independent/          # 12 independent views
+│   ├── account_map.sql
+│   ├── summary_view.sql
+│   ├── s3_view.sql
+│   ├── ri_sp_mapping.sql
+│   ├── resource_view.sql
+│   ├── hourly_view.sql
+│   ├── ec2_running_cost.sql
+│   ├── compute_savings_plan_eligible_spend.sql
+│   ├── kpi_s3_storage_all.sql
+│   ├── kpi_ebs_snap.sql
+│   ├── kpi_ebs_storage_all.sql
+│   └── kpi_instance_mapping.sql
+├── level_2_dependent/            # 1 dependent view
+│   └── kpi_instance_all.sql
+└── level_3_final/                # 1 final view
+    └── kpi_tracker.sql
+```
+
+**Output (Parquet Files):**
+
+```
+cur2_view/
+├── level_1_independent/
+│   ├── account_map.parquet
+│   ├── summary_view.parquet
+│   ├── s3_view.parquet
+│   ├── ri_sp_mapping.parquet
+│   ├── resource_view.parquet
+│   ├── hourly_view.parquet
+│   ├── ec2_running_cost.parquet
+│   ├── compute_savings_plan_eligible_spend.parquet
+│   ├── kpi_s3_storage_all.parquet
+│   ├── kpi_ebs_snap.parquet
+│   ├── kpi_ebs_storage_all.parquet
+│   └── kpi_instance_mapping.parquet
+├── level_2_dependent/
+│   └── kpi_instance_all.parquet
+└── level_3_final/
+    └── kpi_tracker.parquet
+```
+
+### 🔄 How Dependency Resolution Works
+
+**1. Level 1 Processing:**
+
+- All independent views run first (can run in parallel)
+- Each result is saved as parquet AND registered as a DuckDB view
+- No dependencies between these views
+
+**2. Level 2 Processing:**
+
+- `kpi_instance_all` runs after Level 1 completes
+- References `kpi_instance_mapping` view (from Level 1)
+- Result saved as parquet and registered for Level 3
+
+**3. Level 3 Processing:**
+
+- `kpi_tracker` runs last
+- References multiple views from Level 1 and Level 2:
+  - `summary_view` (Level 1)
+  - `kpi_instance_all` (Level 2)
+  - `kpi_ebs_storage_all` (Level 1)
+  - `kpi_ebs_snap` (Level 1)
+  - `kpi_s3_storage_all` (Level 1)
+
+### 📊 Key Analytics Views
+
+**`kpi_tracker` (Master Dashboard):**
+
+- Comprehensive KPI tracking combining all optimization metrics
+- EC2 instance optimization recommendations
+- EBS storage optimization opportunities
+- S3 storage class recommendations
+- Graviton migration potential
+- Spot instance savings opportunities
+
+**`kpi_instance_all` (Instance Optimization):**
+
+- Instance type recommendations (Graviton, AMD, latest generations)
+- Compute Savings Plan eligibility analysis
+- Reserved Instance opportunities
+- Spot instance potential savings
+- Service-specific optimization (RDS, ElastiCache, OpenSearch, etc.)
+
+**`kpi_ebs_storage_all` (EBS Optimization):**
+
+- GP3 migration opportunities from GP2
+- EBS volume optimization recommendations
+- IOPS and throughput analysis
+- Storage cost breakdown by volume type
+
+**`summary_view` (Cost Foundation):**
+
+- Comprehensive cost summary with all dimensions
+- Purchase option breakdown (On-Demand, Reserved, Savings Plans, Spot)
+- Service-level cost aggregations
+- Account hierarchy and cost allocation
+
+### 🛠️ CUR2ViewPartitioner API
+
+```python
+class CUR2ViewPartitioner:
+    def __init__(self,
+                 source_client: DataExportsPolars,
+                 views_base_dir: str = "cur2_views",
+                 output_base_dir: str = "cur2_view")
+
+    def run_all_views(self) -> Dict[str, Dict[str, str]]
+    def process_level(self, level_name: str, sql_files: List[str]) -> Dict[str, str]
+    def process_view_file(self, sql_file_path: str, level: str) -> str
+    def discover_view_files_by_level(self) -> Dict[str, List[str]]
+```
+
+### 🎯 Use Cases
+
+**1. Cost Optimization Dashboards:**
+
+- Load `kpi_tracker.parquet` for comprehensive cost optimization metrics
+- Use individual KPI parquet files for specific optimization areas
+
+**2. Executive Reporting:**
+
+- `summary_view.parquet` provides high-level cost breakdowns
+- `account_map.parquet` enables proper cost allocation
+
+**3. Technical Optimization:**
+
+- `kpi_instance_all.parquet` for EC2/RDS/ElastiCache optimization
+- `kpi_ebs_storage_all.parquet` for storage optimization
+- `kpi_s3_storage_all.parquet` for S3 cost optimization
+
+**4. Operational Analytics:**
+
+- `hourly_view.parquet` for usage pattern analysis
+- `resource_view.parquet` for resource-level cost tracking
+
+### ⚡ Performance Benefits
+
+- **Dependency-aware processing**: Ensures correct execution order
+- **Automatic view registration**: Dependent views can reference previous results
+- **Parquet optimization**: Fast columnar storage for analytics
+- **Incremental processing**: Only processes views that need updating
+- **Error handling**: Stops on failures to prevent inconsistent datasets
+
+### 🔧 Advanced Usage
+
+**Custom processing order:**
+
+```python
+# Process only specific levels
+partitioner = CUR2ViewPartitioner(client)
+
+# Process only Level 1 views
+levels = partitioner.discover_view_files_by_level()
+results_l1 = partitioner.process_level("level_1_independent", levels["level_1_independent"])
+
+# Later, process Level 2 (after Level 1 is complete)
+results_l2 = partitioner.process_level("level_2_dependent", levels["level_2_dependent"])
+```
+
+**Individual view processing:**
+
+```python
+# Process single view file
+parquet_path = partitioner.process_view_file("level_1_independent/summary_view.sql", "level_1")
+
+# The view is automatically registered for dependent queries
+```
+
+### 🚨 Error Handling
+
+The system stops processing on any error to prevent inconsistent datasets:
+
+```bash
+❌ Failed to process level_2_dependent/kpi_instance_all.sql: Table 'kpi_instance_mapping' not found
+```
+
+This ensures that:
+
+- Dependent views don't run with missing dependencies
+- Data integrity is maintained
+- Clear error messages indicate what needs to be fixed
+
 ## 🚀 Quick Start
 
 ### Basic Usage
@@ -261,6 +680,26 @@ DataExportsPolars(
 )
 ```
 
+### DataPartitioner Constructor
+
+```python
+DataPartitioner(
+    source_client: DataExportsPolars,    # Data client for querying
+    output_base_dir: str = "cur2_data",  # Local directory for parquet files
+    query_library_path: str = "cur2_query_library"  # Path to SQL files
+)
+```
+
+### CUR2ViewPartitioner Constructor
+
+```python
+CUR2ViewPartitioner(
+    source_client: DataExportsPolars,    # Data client for querying
+    views_base_dir: str = "cur2_views",  # Directory containing organized view SQL files
+    output_base_dir: str = "cur2_view"   # Output directory for parquet results
+)
+```
+
 ### Main Methods
 
 | Method                        | Description               | Example                                    |
@@ -272,23 +711,45 @@ DataExportsPolars(
 | `info()`                      | Print data summary        | `data.info()`                              |
 | `list_available_partitions()` | Debug partition discovery | `data.list_available_partitions()`         |
 
-### Data Partitioning
+### SQL File Processing
 
 ```python
-from de_polars import DataPartitioner
+from de_polars.data_partitioner import DataPartitioner
 
-# Create partitioned datasets
+# Create data partitioner for SQL file processing
 partitioner = DataPartitioner(
     source_client=cur_data,
-    target_bucket='your-bucket',
-    target_prefix='partitioned-data'
+    output_base_dir='cur2_data',
+    query_library_path='cur2_query_library'
 )
 
-# SQL-based partitioning
-high_cost_path = partitioner.example_1_sql_partition()
+# Run SQL files and save as parquet
+results = partitioner.run_sql_files([
+    'analytics/amazon_athena.sql',
+    'compute/lambda.sql'
+])
 
-# Python-based partitioning
-ec2_path = partitioner.example_2_python_partition()
+# Each SQL file result is saved as parquet maintaining directory structure
+# e.g., analytics/amazon_athena.sql -> cur2_data/analytics/amazon_athena.parquet
+```
+
+### CUR2 View Processing
+
+```python
+from cur2_view_partitioning import CUR2ViewPartitioner
+
+# Create view partitioner for dependency-aware processing
+view_partitioner = CUR2ViewPartitioner(
+    source_client=cur_data,
+    views_base_dir='cur2_views',
+    output_base_dir='cur2_view'
+)
+
+# Run all views in dependency order
+results = view_partitioner.run_all_views()
+
+# Each view result is saved as parquet with automatic dependency resolution
+# e.g., level_1_independent/summary_view.sql -> cur2_view/level_1_independent/summary_view.parquet
 ```
 
 ## 🔐 Authentication
@@ -401,6 +862,12 @@ result = data.query("""
 - Select specific columns instead of `SELECT *`
 - Use smaller date ranges for initial testing
 
+**"Table 'view_name' not found" (View Processing)**
+
+- Ensure Level 1 views complete before Level 2 runs
+- Check view dependencies in SQL files
+- Use `CUR2ViewPartitioner` for automatic dependency resolution
+
 ## 📝 Examples
 
 ### Cost Analysis
@@ -464,6 +931,29 @@ result = coh_data.query("""
     GROUP BY recommendation_type
     ORDER BY total_savings DESC
 """)
+```
+
+### CUR2 View Analytics
+
+```python
+# Load comprehensive KPI tracker results
+import polars as pl
+
+# Master KPI dashboard
+kpi_tracker = pl.read_parquet('cur2_view/level_3_final/kpi_tracker.parquet')
+
+# EC2 optimization opportunities
+instance_analysis = pl.read_parquet('cur2_view/level_2_dependent/kpi_instance_all.parquet')
+
+# EBS storage optimization
+ebs_analysis = pl.read_parquet('cur2_view/level_1_independent/kpi_ebs_storage_all.parquet')
+
+# Example: Top EC2 Graviton migration opportunities
+graviton_opportunities = instance_analysis.filter(
+    pl.col('ec2_graviton_potential_savings') > 0
+).sort('ec2_graviton_potential_savings', descending=True).head(10)
+
+print(graviton_opportunities.select(['resource_id', 'instance_type', 'ec2_graviton_potential_savings']))
 ```
 
 ## 🤝 Contributing
