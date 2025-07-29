@@ -3,7 +3,7 @@
 -- Description: S3 storage KPIs with optimization recommendations
 -- Output: cur2_view/09_kpi_s3_storage_all.parquet
 
-CREATE OR REPLACE VIEW kpi_s3_storage_all AS 
+-- CREATE OR REPLACE VIEW kpi_s3_storage_all AS 
 WITH
   inputs AS (
    SELECT *

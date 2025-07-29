@@ -3,7 +3,7 @@
 -- Description: Resource-level cost and usage details
 -- Output: cur2_view/05_resource_view.parquet
 
-CREATE OR REPLACE VIEW resource_view AS 
+-- CREATE OR REPLACE VIEW resource_view AS 
 SELECT DISTINCT
   DATE_TRUNC('day', line_item_usage_start_date) AS usage_date,
   bill_payer_account_id AS payer_account_id,

@@ -3,7 +3,7 @@
 -- Description: S3 storage usage and cost analysis
 -- Output: cur2_view/03_s3_view.parquet
 
-CREATE OR REPLACE VIEW s3_view AS 
+-- CREATE OR REPLACE VIEW s3_view AS 
 SELECT DISTINCT
   SPLIT_PART(billing_period, '-', 1) AS year,
   SPLIT_PART(billing_period, '-', 2) AS month,

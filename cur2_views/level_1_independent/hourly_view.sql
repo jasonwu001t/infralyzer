@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW "hourly_view" AS 
+-- CREATE OR REPLACE VIEW "hourly_view" AS 
 SELECT DISTINCT
   "line_item_product_code" "product_code"
 , "product_servicecode" "service"

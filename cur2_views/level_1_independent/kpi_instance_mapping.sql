@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW "kpi_instance_mapping" AS 
+-- CREATE OR REPLACE VIEW "kpi_instance_mapping" AS 
    SELECT *
 FROM
   (

@@ -3,7 +3,7 @@
 -- Description: Reserved Instance and Savings Plan mapping with terms and options
 -- Output: cur2_view/04_ri_sp_mapping.parquet
 
-CREATE OR REPLACE VIEW ri_sp_mapping AS 
+-- CREATE OR REPLACE VIEW ri_sp_mapping AS 
 SELECT DISTINCT
   a.billing_period_mapping,
   a.payer_account_id_mapping,

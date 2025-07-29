@@ -3,7 +3,7 @@
 -- Description: Compute services eligible for Savings Plan discounts
 -- Output: cur2_view/08_compute_savings_plan_eligible_spend.parquet
 
-CREATE OR REPLACE VIEW compute_savings_plan_eligible_spend AS 
+-- CREATE OR REPLACE VIEW compute_savings_plan_eligible_spend AS 
 SELECT DISTINCT
   SPLIT_PART(billing_period, '-', 1) AS year,
   SPLIT_PART(billing_period, '-', 2) AS month,

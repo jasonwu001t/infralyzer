@@ -3,7 +3,7 @@
 -- Description: Account mapping with parent/child relationships
 -- Output: cur2_view/01_account_map.parquet
 
-CREATE OR REPLACE VIEW account_map AS 
+-- CREATE OR REPLACE VIEW account_map AS 
 SELECT DISTINCT
   line_item_usage_account_id AS account_id,
   MAX_BY(line_item_usage_account_name, line_item_usage_start_date) AS account_name,

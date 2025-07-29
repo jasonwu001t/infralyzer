@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW "kpi_ebs_storage_all" AS 
+-- CREATE OR REPLACE VIEW "kpi_ebs_storage_all" AS 
 WITH
   ebs_all AS (
    SELECT

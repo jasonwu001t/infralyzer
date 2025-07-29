@@ -3,7 +3,7 @@
 -- Description: EC2 running instance costs by purchase option
 -- Output: cur2_view/07_ec2_running_cost.parquet
 
-CREATE OR REPLACE VIEW ec2_running_cost AS 
+-- CREATE OR REPLACE VIEW ec2_running_cost AS 
 SELECT DISTINCT
   SPLIT_PART(billing_period, '-', 1) AS year,
   SPLIT_PART(billing_period, '-', 2) AS month,

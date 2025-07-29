@@ -3,7 +3,7 @@
 -- Description: Comprehensive cost summary with purchase options and aggregations
 -- Output: cur2_view/02_summary_view.parquet
 
-CREATE OR REPLACE VIEW summary_view AS 
+-- CREATE OR REPLACE VIEW summary_view AS 
 SELECT
   SPLIT_PART(billing_period, '-', 1) AS year,
   SPLIT_PART(billing_period, '-', 2) AS month,
