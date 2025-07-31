@@ -17,7 +17,168 @@
 - **🔄 Backward Compatible**: Existing DataExportsPolars code continues to work unchanged
 - **🔧 Rich Utilities**: Built-in formatters, validators, performance monitoring, and export tools
 
-## 📁 Architecture Overview
+## 🏗️ Architecture Design
+
+### System Architecture
+
+DE-Polars follows a **layered modular architecture** designed for scalability, maintainability, and enterprise-grade cost analytics:
+
+```mermaid
+graph TB
+    %% External Data Sources
+    S3[("AWS S3<br/>Cost Data Exports")]
+    CUR[("CUR 2.0<br/>Cost & Usage Reports")]
+    FOCUS[("FOCUS 1.0<br/>FinOps Cost Data")]
+
+    %% Configuration Layer
+    subgraph Config ["🔧 Configuration Layer"]
+        DC[DataConfig]
+        DET[DataExportType]
+    end
+
+    %% Data Management Layer
+    subgraph DataMgmt ["💾 Data Management Layer"]
+        S3DM[S3DataManager<br/>📡 Discover & Access]
+        LDM[LocalDataManager<br/>💿 Cache Management]
+        DD[DataDownloader<br/>⬇️ S3 to Local]
+    end
+
+    %% Core Engine Layer
+    subgraph Engine ["🧠 Core Engine Layer"]
+        DUCK[DuckDBEngine<br/>🦆 SQL Execution]
+        AUTH[AWS Authentication<br/>🔐 Credential Management]
+    end
+
+    %% Interface Layer
+    subgraph Interface ["🎯 Interface Layer"]
+        FINOPS[FinOpsEngine<br/>🚀 Unified Interface]
+        DEP[DataExportsPolars<br/>🔄 Backward Compatible]
+    end
+
+    %% Analytics Layer
+    subgraph Analytics ["📊 Analytics Layer"]
+        KPI[KPISummaryAnalytics<br/>⭐ Dashboard Metrics]
+        SPEND[SpendAnalytics<br/>💰 Cost Visibility]
+        OPT[OptimizationAnalytics<br/>⚡ Cost Optimization]
+        ALLOC[AllocationAnalytics<br/>🏷️ Cost Allocation]
+        DISC[DiscountAnalytics<br/>💳 Discount Tracking]
+        AI[AIRecommendationAnalytics<br/>🤖 ML Insights]
+        MCP[MCPIntegrationAnalytics<br/>🔌 AI Assistant Protocol]
+    end
+
+    %% API Layer
+    subgraph API ["🌐 API Layer"]
+        FASTAPI[FastAPI Application<br/>🚀 REST API Server]
+        subgraph Endpoints ["API Endpoints"]
+            EP1[KPI Endpoints]
+            EP2[Spend Endpoints]
+            EP3[Optimization Endpoints]
+            EP4[Allocation Endpoints]
+            EP5[Discount Endpoints]
+            EP6[AI Endpoints]
+            EP7[MCP Endpoints]
+        end
+    end
+
+    %% Utilities Layer
+    subgraph Utils ["🛠️ Utilities Layer"]
+        FMT[Formatters<br/>💱 Currency, Number, Date]
+        VAL[Validators<br/>✅ Data Quality & Config]
+        PERF[Performance<br/>⏱️ Query Profiler & Cache]
+        EXP[Export Tools<br/>📤 Reports & Data Export]
+    end
+
+    %% Local Storage
+    LOCAL[("💿 Local Cache<br/>test_local_data/")]
+
+    %% Data Flow Connections
+    S3 --> CUR
+    S3 --> FOCUS
+    CUR --> S3DM
+    FOCUS --> S3DM
+
+    DC --> DUCK
+    DET --> DC
+    AUTH --> DUCK
+
+    S3DM --> DD
+    DD --> LDM
+    LDM --> LOCAL
+    S3DM --> DUCK
+    LOCAL --> LDM
+    LDM --> DUCK
+
+    DUCK --> FINOPS
+    DUCK --> DEP
+
+    FINOPS --> KPI
+    FINOPS --> SPEND
+    FINOPS --> OPT
+    FINOPS --> ALLOC
+    FINOPS --> DISC
+    FINOPS --> AI
+    FINOPS --> MCP
+
+    KPI --> EP1
+    SPEND --> EP2
+    OPT --> EP3
+    ALLOC --> EP4
+    DISC --> EP5
+    AI --> EP6
+    MCP --> EP7
+
+    EP1 --> FASTAPI
+    EP2 --> FASTAPI
+    EP3 --> FASTAPI
+    EP4 --> FASTAPI
+    EP5 --> FASTAPI
+    EP6 --> FASTAPI
+    EP7 --> FASTAPI
+
+    %% Utility connections
+    FMT -.-> Analytics
+    VAL -.-> Analytics
+    PERF -.-> Analytics
+    EXP -.-> Analytics
+
+    %% Styling
+    classDef dataSource fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef engine fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef analytics fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef api fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef interface fill:#f1f8e9,stroke:#33691e,stroke-width:2px
+    classDef utils fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+
+    class S3,CUR,FOCUS,LOCAL dataSource
+    class DUCK,AUTH engine
+    class KPI,SPEND,OPT,ALLOC,DISC,AI,MCP analytics
+    class FASTAPI,EP1,EP2,EP3,EP4,EP5,EP6,EP7 api
+    class FINOPS,DEP interface
+    class FMT,VAL,PERF,EXP utils
+```
+
+### Architecture Layers
+
+| Layer                  | Components                                            | Purpose                                                      |
+| ---------------------- | ----------------------------------------------------- | ------------------------------------------------------------ |
+| **🔧 Configuration**   | `DataConfig`, `DataExportType`                        | Central configuration management for AWS data sources        |
+| **💾 Data Management** | `S3DataManager`, `LocalDataManager`, `DataDownloader` | Handle S3 discovery, local caching, and data synchronization |
+| **🧠 Core Engine**     | `DuckDBEngine`, `Authentication`                      | SQL execution engine with AWS credential management          |
+| **🎯 Interface**       | `FinOpsEngine`, `DataExportsPolars`                   | Unified access point and backward compatibility              |
+| **📊 Analytics**       | 7 specialized modules                                 | Domain-specific cost analytics and optimization              |
+| **🌐 API**             | `FastAPI` + 7 endpoint routers                        | Production-ready REST API with OpenAPI docs                  |
+| **🛠️ Utilities**       | Formatters, Validators, Performance, Export           | Shared utilities for data processing and presentation        |
+
+### Data Flow
+
+1. **📡 Discovery**: `S3DataManager` discovers CUR/FOCUS data in AWS S3
+2. **⬇️ Download**: `DataDownloader` caches data locally via `LocalDataManager`
+3. **🦆 Query**: `DuckDBEngine` executes SQL on S3 or local cache
+4. **📊 Analytics**: Specialized modules perform domain-specific analysis
+5. **🚀 Interface**: `FinOpsEngine` provides unified access to all analytics
+6. **🌐 API**: FastAPI exposes REST endpoints for each analytics module
+
+### Directory Structure
 
 ```
 de_polars/
