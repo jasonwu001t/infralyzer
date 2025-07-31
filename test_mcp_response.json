@@ -1,0 +1,15 @@
+{
+  "type": "mcp_response",
+  "query": "What services are costing me the most money?",
+  "intent": {},
+  "data": {},
+  "insights": [
+    "Analysis powered by MCP cost intelligence"
+  ],
+  "recommendations": [],
+  "metadata": {
+    "processing_time": "fast",
+    "data_source": "local_cache",
+    "mcp_version": "0.4.0"
+  }
+}

@@ -262,7 +262,7 @@ class AllocationAnalytics:
                 END as team,
                 CASE 
                     WHEN resource_tags LIKE '%Project%' THEN 
-                        SUBSTRING(resource_tags FROM 'Project[\":]*([^,}\"]*)')
+                        SUBSTRING(resource_tags FROM 'Project[\":]*([^,}}\"]*)')
                     ELSE 'General'
                 END as project
             FROM {self.config.table_name}

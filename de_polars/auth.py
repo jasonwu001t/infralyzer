@@ -142,4 +142,24 @@ def get_storage_options(aws_region: Optional[str] = None,
             print(f"⚠️  Warning: Failed to get role credentials for data access: {e}")
             print("    Falling back to default credential chain...")
     
+    # If no explicit credentials provided, try to get from default credential chain
+    if not aws_access_key_id and not role_arn:
+        try:
+            import boto3
+            session = boto3.Session()
+            credentials = session.get_credentials()
+            if credentials:
+                options['aws_access_key_id'] = credentials.access_key
+                options['aws_secret_access_key'] = credentials.secret_key
+                if credentials.token:
+                    options['aws_session_token'] = credentials.token
+                
+                # Get region from session if not specified
+                if not aws_region:
+                    region = session.region_name
+                    if region:
+                        options['aws_region'] = region
+        except Exception as e:
+            print(f"⚠️  Warning: Could not retrieve credentials from default chain: {e}")
+    
     return options 
