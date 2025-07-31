@@ -1,9 +1,9 @@
 """
-Run All Tests - Execute all 4 FinOps tests in sequence
+Run All Tests - Execute all 12 FinOps tests in sequence
 =====================================================
 
 This script runs all tests in the correct order and provides a summary.
-Tests 1-3 will run automatically, Test 4 (FastAPI) requires manual termination.
+Tests 1-3 and 5-12 will run automatically, Test 4 (FastAPI) requires manual termination.
 """
 
 import sys
@@ -36,7 +36,7 @@ def main():
     
     print("🧪 FinOps Test Suite - Running All Tests")
     print("=" * 60)
-    print("This will run tests 1-3 automatically.")
+    print("This will run Tests 1-3, 5-12 automatically.")
     print("Test 4 (FastAPI) will start a server that you need to stop manually.")
     print("=" * 60)
     
@@ -65,12 +65,60 @@ def main():
             "function": "test_fastapi_endpoints",
             "name": "Test 4: FastAPI Endpoints",
             "auto": False
+        },
+        {
+            "file": "test_5_sql_views.py",
+            "function": "test_sql_views",
+            "name": "Test 5: SQL Views with Dependencies",
+            "auto": True
+        },
+        {
+            "file": "test_6_mcp_server.py",
+            "function": "test_mcp_server",
+            "name": "Test 6: MCP Server Integration",
+            "auto": True
+        },
+        {
+            "file": "test_7_optimization.py",
+            "function": "test_optimization_analytics",
+            "name": "Test 7: Optimization Analytics",
+            "auto": True
+        },
+        {
+            "file": "test_8_ai_recommendations.py",
+            "function": "test_ai_recommendations",
+            "name": "Test 8: AI Recommendations",
+            "auto": True
+        },
+        {
+            "file": "test_9_data_export.py",
+            "function": "test_data_export",
+            "name": "Test 9: Data Export & Reporting",
+            "auto": True
+        },
+        {
+            "file": "test_10_data_partitioner.py",
+            "function": "test_data_partitioner",
+            "name": "Test 10: Data Partitioner",
+            "auto": True
+        },
+        {
+            "file": "test_11_utilities.py",
+            "function": "test_utilities_formatters",
+            "name": "Test 11: Utilities & Formatters",
+            "auto": True
+        },
+        {
+            "file": "test_12_kpi_comprehensive.py",
+            "function": "main",
+            "name": "Test 12: Comprehensive KPI Dashboard",
+            "auto": True
         }
     ]
     
     results = {}
     
-    # Run automatic tests (1-3)
+    # Run automatic tests (all except Test 4 which needs manual termination)
     for test in tests:
         if test["auto"]:
             print(f"\n🚀 Running {test['name']}")
@@ -120,15 +168,16 @@ def main():
         
         response = input("Do you want to start the FastAPI server? (y/n): ").lower()
         if response in ['y', 'yes']:
-            test = tests[3]  # FastAPI test
-            test_file = os.path.join(os.path.dirname(__file__), test["file"])
+            # Find the FastAPI test
+            fastapi_test = next(t for t in tests if t["file"] == "test_4_fastapi_endpoints.py")
+            test_file = os.path.join(os.path.dirname(__file__), fastapi_test["file"])
             
-            print(f"\n🚀 Starting {test['name']}")
+            print(f"\n🚀 Starting {fastapi_test['name']}")
             print("⚠️  Press Ctrl+C to stop the server when done testing")
             print("-" * 40)
             
             # Run FastAPI test
-            run_test_module(test_file, test["function"])
+            run_test_module(test_file, fastapi_test["function"])
             
         else:
             print("Skipping FastAPI test. You can run it manually:")

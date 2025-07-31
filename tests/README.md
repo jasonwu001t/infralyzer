@@ -55,6 +55,7 @@ This directory contains 4 independent test files to validate each core function 
    python test_4_fastapi_endpoints.py # Start API server
    python test_5_sql_views.py         # Test SQL view dependencies
    python test_6_mcp_server.py        # Test MCP integration
+   python test_12_kpi_comprehensive.py # Comprehensive KPI dashboard
    ```
 
 ## Test Configuration
@@ -88,6 +89,16 @@ Test 6 demonstrates AI assistant integration through Model Context Protocol:
 - **Streaming:** Real-time cost alerts and events
 - **Output:** Standard MCP response format
 
+## Comprehensive KPI Dashboard (Test 12)
+
+Test 12 provides the complete KPI tracking dashboard using all SQL views:
+
+- **Views Created:** 6 SQL views with dependency management
+- **Cost Analysis:** EC2, RDS, EBS, S3, compute services metrics
+- **Optimization:** Spot instances, Graviton, commitment savings
+- **Storage:** GP2→GP3 migration, snapshot lifecycle
+- **Output:** Complete JSON API response with all KPI metrics
+
 ## Prerequisites
 
 - AWS credentials configured (via AWS CLI, environment variables, or IAM role)
@@ -97,9 +108,10 @@ Test 6 demonstrates AI assistant integration through Model Context Protocol:
 ## Notes
 
 - Tests 1 and 2 require AWS/S3 access
-- Tests 3, 4, 5, and 6 work offline with local data
-- Test 2 must be run before Tests 3, 4, 5, and 6
+- Tests 3-12 work offline with local data
+- Test 2 must be run before Tests 3-12
 - Each test is independent and focuses on a specific function
 - Local data is stored in `./test_local_data/` directory
 - Test 5 creates additional view outputs in `./test_views_output/`
 - Test 6 generates MCP response JSON for AI assistant integration
+- Test 12 creates comprehensive KPI dashboard JSON output

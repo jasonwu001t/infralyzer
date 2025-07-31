@@ -3,7 +3,7 @@
 -- Description: Comprehensive KPI tracking dashboard with all cost optimization metrics
 -- Output: cur2_view/14_kpi_tracker.parquet
 
-CREATE OR REPLACE VIEW kpi_tracker AS 
+-- CREATE OR REPLACE VIEW kpi_tracker AS 
 SELECT DISTINCT
   spend_all.billing_period,
   spend_all.payer_account_id,

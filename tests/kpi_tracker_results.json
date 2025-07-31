@@ -1,0 +1,77 @@
+{
+  "summary_metadata": {
+    "query_date": "2025-07-31T16:06:38",
+    "billing_periods": [
+      "2025-07-01 00:00:00"
+    ],
+    "total_accounts": 1,
+    "data_source": "cur20_local_parquet",
+    "data_export_type": "CUR2.0",
+    "records_analyzed": 2971
+  },
+  "overall_spend": {
+    "billing_period": "2025-07-01 00:00:00",
+    "payer_account_id": "014498620306",
+    "linked_account_id": "014498620306",
+    "spend_all_cost": 23.4175693298,
+    "unblended_cost": 0.0,
+    "tags_json": "{}"
+  },
+  "ec2_metrics": {
+    "ec2_all_cost": 0.0,
+    "ec2_usage_cost": 0.0,
+    "ec2_spot_cost": 0.0,
+    "ec2_spot_potential_savings": 0.0,
+    "ec2_previous_generation_cost": 0.0,
+    "ec2_previous_generation_potential_savings": 0.0,
+    "ec2_graviton_eligible_cost": 0.0,
+    "ec2_graviton_cost": 0.0,
+    "ec2_graviton_potential_savings": 0.0,
+    "ec2_amd_eligible_cost": 0.0,
+    "ec2_amd_cost": 0.0,
+    "ec2_amd_potential_savings": 0.0
+  },
+  "rds_metrics": {
+    "rds_all_cost": 0.0,
+    "rds_ondemand_cost": 0.0,
+    "rds_graviton_cost": 0.0,
+    "rds_graviton_eligible_cost": 0.0,
+    "rds_graviton_potential_savings": 0.0,
+    "rds_commit_potential_savings": 0.0,
+    "rds_commit_savings": 0.0,
+    "rds_license": 0,
+    "rds_no_license": 0,
+    "rds_sql_server_cost": 0.0,
+    "rds_oracle_cost": 0.0
+  },
+  "storage_metrics": {
+    "ebs_all_cost": 3.2387096013999987,
+    "ebs_gp_all_cost": 3.2387096013999987,
+    "ebs_gp2_cost": 0.0,
+    "ebs_gp3_cost": 3.2387096013999987,
+    "ebs_gp3_potential_savings": 0.0,
+    "ebs_snapshots_under_1yr_cost": 5.4396870293,
+    "ebs_snapshots_over_1yr_cost": 0.0,
+    "ebs_snapshot_cost": 5.4396870293,
+    "s3_all_storage_cost": 0.0,
+    "s3_standard_storage_cost": 0.0,
+    "s3_standard_storage_potential_savings": 0.0
+  },
+  "compute_services": {
+    "compute_all_cost": 0.0,
+    "compute_ondemand_cost": 0.0,
+    "compute_commit_potential_savings": 0.0,
+    "compute_commit_savings": 0.0,
+    "dynamodb_all_cost": 0.0,
+    "lambda_all_cost": 0.0
+  },
+  "savings_summary": {
+    "total_potential_savings": 0.0,
+    "graviton_savings_potential": 0.0,
+    "commitment_savings_potential": 0.0,
+    "storage_optimization_potential": 0.0,
+    "spot_instance_potential": 0.0,
+    "current_monthly_savings": 0.0,
+    "annualized_savings_opportunity": 0.0
+  }
+}
