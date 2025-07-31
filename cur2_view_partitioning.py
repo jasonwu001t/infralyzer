@@ -1,5 +1,5 @@
 """
-CUR2 View Partitioning Script
+CUR2 View Partitioning Script (This is used to partition the default cur2_view table to make sure dependent sql files are run in sequent)
 
 Processes SQL view files from cur2_views folder in dependency order:
 1. Level 1: Independent views (can run in parallel)

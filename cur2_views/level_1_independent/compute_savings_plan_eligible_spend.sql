@@ -21,7 +21,13 @@ WHERE ((bill_billing_period_start_date >= (DATE_TRUNC('month', CURRENT_TIMESTAMP
        AND (product_servicecode <> 'AWSDataTransfer') 
        AND (NOT (line_item_usage_type LIKE '%Spot%')) 
        AND (NOT (line_item_usage_type LIKE '%DataXfer%')) 
-       AND (((line_item_product_code = 'AmazonEC2') AND (line_item_operation LIKE '%RunInstances%')) 
-            OR ((line_item_product_code = 'AWSLambda') AND ((line_item_usage_type LIKE '%Lambda-GB-Second%') OR (line_item_usage_type LIKE '%Lambda-Provisioned-GB-Second%') OR (line_item_usage_type LIKE '%Lambda-Provisioned-Concurrency%'))) 
-            OR (line_item_usage_type LIKE '%Fargate%')))
+       AND (
+            ((line_item_product_code = 'AmazonEC2') AND (line_item_operation LIKE '%RunInstances%')) 
+            OR ((line_item_product_code = 'AWSLambda') AND ((line_item_usage_type LIKE '%Lambda-GB-Second%') 
+                                                            OR (line_item_usage_type LIKE '%Lambda-Provisioned-GB-Second%') 
+                                                            OR (line_item_usage_type LIKE '%Lambda-Provisioned-Concurrency%'))
+                  ) 
+            OR (line_item_usage_type LIKE '%Fargate%')
+          )
+      )
 GROUP BY 1, 2, 3, 4, 5, 6, 7

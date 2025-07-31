@@ -1,6 +1,6 @@
 -- View: ec2_running_cost
 -- Dependencies: CUR
--- Description: EC2 running instance costs by purchase option
+-- Description: EC2 running instance costs by purchase option (SP, RI, Spot, OD)
 -- Output: cur2_view/07_ec2_running_cost.parquet
 
 -- CREATE OR REPLACE VIEW ec2_running_cost AS 
@@ -23,10 +23,20 @@ SELECT DISTINCT
   ROUND(SUM(line_item_usage_amount), 2) AS usage_quantity
 FROM
   CUR
-WHERE (((((bill_billing_period_start_date >= (DATE_TRUNC('month', CURRENT_TIMESTAMP) - INTERVAL 1 MONTH)) 
-          AND (line_item_product_code = 'AmazonEC2')) 
-         AND (product_servicecode <> 'AWSDataTransfer')) 
-        AND (line_item_operation LIKE '%RunInstances%')) 
+WHERE (
+        (
+          (
+            ((bill_billing_period_start_date >= (DATE_TRUNC('month', CURRENT_TIMESTAMP) - INTERVAL 1 MONTH)) 
+            AND (line_item_product_code = 'AmazonEC2')
+            ) 
+            AND (product_servicecode <> 'AWSDataTransfer')
+          ) 
+            AND (line_item_operation LIKE '%RunInstances%')
+        ) 
        AND (NOT (line_item_usage_type LIKE '%DataXfer%')) 
-       AND ((line_item_line_item_type = 'Usage') OR (line_item_line_item_type = 'SavingsPlanCoveredUsage') OR (line_item_line_item_type = 'DiscountedUsage')))
+       AND ((line_item_line_item_type = 'Usage') 
+            OR (line_item_line_item_type = 'SavingsPlanCoveredUsage')
+            OR (line_item_line_item_type = 'DiscountedUsage')
+            )
+      )
 GROUP BY 1, 2, 3, 4, 5, 6, 7, 8

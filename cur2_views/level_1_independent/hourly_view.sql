@@ -22,5 +22,9 @@ SELECT DISTINCT
 , "sum"("line_item_usage_amount") "usage_quantity"
 FROM
   CUR
-WHERE (((current_date - INTERVAL  '30' DAY) <= line_item_usage_start_date) AND ((("line_item_line_item_type" = 'Usage') OR ("line_item_line_item_type" = 'SavingsPlanCoveredUsage')) OR ("line_item_line_item_type" = 'DiscountedUsage')) AND (NOT (COALESCE("line_item_operation", '') IN ('EKSPod-EC2', 'ECSTask-EC2'))))
+WHERE (((current_date - INTERVAL  '30' DAY) <= line_item_usage_start_date) 
+AND ((("line_item_line_item_type" = 'Usage') 
+OR ("line_item_line_item_type" = 'SavingsPlanCoveredUsage')) 
+OR ("line_item_line_item_type" = 'DiscountedUsage')) 
+AND (NOT (COALESCE("line_item_operation", '') IN ('EKSPod-EC2', 'ECSTask-EC2'))))
 GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
