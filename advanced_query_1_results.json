@@ -1,0 +1,58 @@
+[
+  {
+    "billing_period": "2025-07-01 00:00:00",
+    "product_servicecode": "AmazonVPC",
+    "current_cost": 12.504999999999976,
+    "previous_cost": null,
+    "cost_change_percent": null
+  },
+  {
+    "billing_period": "2025-07-01 00:00:00",
+    "product_servicecode": "AmazonEC2",
+    "current_cost": 8.678396630699993,
+    "previous_cost": null,
+    "cost_change_percent": null
+  },
+  {
+    "billing_period": "2025-07-01 00:00:00",
+    "product_servicecode": null,
+    "current_cost": 1.7014584000000001,
+    "previous_cost": null,
+    "cost_change_percent": null
+  },
+  {
+    "billing_period": "2025-07-01 00:00:00",
+    "product_servicecode": "AWSGlue",
+    "current_cost": 0.38062376,
+    "previous_cost": null,
+    "cost_change_percent": null
+  },
+  {
+    "billing_period": "2025-07-01 00:00:00",
+    "product_servicecode": "AmazonS3",
+    "current_cost": 0.14888500000000002,
+    "previous_cost": null,
+    "cost_change_percent": null
+  },
+  {
+    "billing_period": "2025-07-01 00:00:00",
+    "product_servicecode": "AmazonAthena",
+    "current_cost": 0.00295,
+    "previous_cost": null,
+    "cost_change_percent": null
+  },
+  {
+    "billing_period": "2025-07-01 00:00:00",
+    "product_servicecode": "AmazonBedrock",
+    "current_cost": 0.00018840000000000003,
+    "previous_cost": null,
+    "cost_change_percent": null
+  },
+  {
+    "billing_period": "2025-07-01 00:00:00",
+    "product_servicecode": "AWSDataTransfer",
+    "current_cost": 6.713909999999999e-05,
+    "previous_cost": null,
+    "cost_change_percent": null
+  }
+]

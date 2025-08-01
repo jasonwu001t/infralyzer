@@ -36,7 +36,7 @@ def main():
     
     print("🧪 FinOps Test Suite - Running All Tests")
     print("=" * 60)
-    print("This will run Tests 1-3, 5-12 automatically.")
+    print("This will run Tests 1-3, 5-14 automatically.")
     print("Test 4 (FastAPI) will start a server that you need to stop manually.")
     print("=" * 60)
     
@@ -112,6 +112,18 @@ def main():
             "file": "test_12_kpi_comprehensive.py",
             "function": "main",
             "name": "Test 12: Comprehensive KPI Dashboard",
+            "auto": True
+        },
+        {
+            "file": "test_13_kpi_api_endpoint.py",
+            "function": "main",
+            "name": "Test 13: KPI API Endpoint",
+            "auto": True
+        },
+        {
+            "file": "test_14_sql_query_endpoint.py",
+            "function": "main",
+            "name": "Test 14: SQL Query API Endpoint",
             "auto": True
         }
     ]

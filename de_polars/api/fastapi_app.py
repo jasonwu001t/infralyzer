@@ -15,7 +15,8 @@ from .endpoints import (
     allocation_router,
     discounts_router,
     mcp_router,
-    ai_router
+    ai_router,
+    sql_router
 )
 
 
@@ -47,11 +48,18 @@ class FinOpsAPI:
             - 💳 **Discounts**: Enterprise discount tracking
             - 🤖 **AI Insights**: AI-powered cost recommendations
             - 🔌 **MCP Integration**: Model Context Protocol support
+            - 🔍 **SQL Queries**: Execute custom SQL queries on cost data
             
             ## Data Sources
             - Local parquet files (preferred for cost savings)
             - S3 parquet files (fallback)
             - Powered by DuckDB SQL engine
+            
+            ## SQL Query Interface
+            - Execute custom SELECT queries on your AWS cost data
+            - Support for complex JOINs, aggregations, and analytics
+            - Access to main data tables and pre-built cost views
+            - JSON and CSV output formats
             
             ## Authentication
             JWT/API key based authentication with role-based access control.
@@ -81,6 +89,7 @@ class FinOpsAPI:
         app.include_router(discounts_router, prefix="/api/v1/finops", tags=["Discounts"])
         app.include_router(mcp_router, prefix="/api/v1/finops", tags=["MCP Integration"])
         app.include_router(ai_router, prefix="/api/v1/finops", tags=["AI Recommendations"])
+        app.include_router(sql_router, prefix="/api/v1/finops", tags=["SQL Queries"])
         
         # Add health check endpoint
         @app.get("/health", tags=["Health"])

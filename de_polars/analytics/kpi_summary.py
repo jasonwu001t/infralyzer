@@ -45,38 +45,183 @@ class KPISummaryAnalytics:
             Complete KPI metrics structure matching API design
         """
         try:
+            # Get a persistent DuckDB connection and create all prerequisite views
+            conn = self.engine._get_duckdb_connection()
+            
+            # Register local data with this connection
+            self.engine._register_local_data_with_duckdb(conn)
+            
+            # Create prerequisite views in the same connection
+            self._create_prerequisite_views_in_connection(conn)
+            
             # Load and execute kpi_tracker.sql query
             kpi_sql = self._load_kpi_tracker_sql()
             
             # Apply filters to the query
             filtered_sql = self._apply_filters(kpi_sql, billing_period, payer_account_id, linked_account_id, tags_filter)
             
-            # Execute the KPI query
-            kpi_result = self.engine.query(filtered_sql)
+            # Execute the KPI query in the same connection with views
+            kpi_result = conn.execute(filtered_sql).fetchdf()
+            
+            # Convert to polars for consistency
+            import polars as pl
+            kpi_result_pl = pl.from_pandas(kpi_result)
+            
+            # Close the connection
+            conn.close()
             
             # Transform to API response format
-            return self._transform_to_api_response(kpi_result, billing_period, payer_account_id, linked_account_id, tags_filter)
+            return self._transform_to_api_response(kpi_result_pl, billing_period, payer_account_id, linked_account_id, tags_filter)
             
         except Exception as e:
             print(f"❌ Error generating KPI summary: {e}")
             return self._get_error_response(str(e))
     
+    def _create_prerequisite_views_in_connection(self, conn) -> None:
+        """Create all prerequisite views needed for kpi_tracker.sql in the given connection."""
+        try:
+            # Determine correct path based on current working directory
+            import os
+            current_dir = os.getcwd()
+            
+            if current_dir.endswith('/tests'):
+                # Running from tests directory
+                views_base_path = '../cur2_views'
+            else:
+                # Running from project root
+                views_base_path = 'cur2_views'
+            
+            # Define the views to create in dependency order
+            views_to_create = [
+                # Level 1 - Independent views
+                (f'{views_base_path}/level_1_independent/summary_view.sql', 'summary_view'),
+                (f'{views_base_path}/level_1_independent/kpi_instance_mapping.sql', 'kpi_instance_mapping'),
+                (f'{views_base_path}/level_1_independent/kpi_ebs_storage_all.sql', 'kpi_ebs_storage_all'),
+                (f'{views_base_path}/level_1_independent/kpi_ebs_snap.sql', 'kpi_ebs_snap'),
+                (f'{views_base_path}/level_1_independent/kpi_s3_storage_all.sql', 'kpi_s3_storage_all'),
+                # Level 2 - Dependent views
+                (f'{views_base_path}/level_2_dependent/kpi_instance_all.sql', 'kpi_instance_all'),
+            ]
+            
+            for sql_file, view_name in views_to_create:
+                sql_path = Path(sql_file)
+                if sql_path.exists():
+                    self._execute_view_from_sql_file(conn, sql_path, view_name)
+                else:
+                    print(f"⚠️ SQL file not found: {sql_path}")
+            
+        except Exception as e:
+            print(f"⚠️ Error creating prerequisite views: {e}")
+    
+    def _execute_view_from_sql_file(self, conn, sql_file_path: Path, view_name: str) -> None:
+        """Execute a SQL file to create a view in the current DuckDB connection."""
+        try:
+            with open(sql_file_path, 'r', encoding='utf-8') as f:
+                sql_content = f.read()
+            
+            # Special handling for kpi_instance_mapping.sql - fix DuckDB syntax
+            if 'kpi_instance_mapping' in str(sql_file_path):
+                sql_content = sql_content.replace('ROW (', '(')
+            
+            # Remove any existing CREATE OR REPLACE VIEW and add our own
+            lines = sql_content.split('\n')
+            cleaned_lines = []
+            
+            for line in lines:
+                stripped = line.strip()
+                if (stripped.startswith('--') or 
+                    stripped.startswith('CREATE OR REPLACE VIEW') or
+                    stripped.startswith('CREATE VIEW') or
+                    stripped == ''):
+                    if not stripped.startswith('CREATE'):  # Keep comments and empty lines
+                        cleaned_lines.append(line)
+                    continue
+                cleaned_lines.append(line)
+            
+            # Create the view
+            view_sql = f"CREATE OR REPLACE VIEW {view_name} AS\n" + '\n'.join(cleaned_lines)
+            conn.execute(view_sql)
+            
+        except Exception as e:
+            print(f"⚠️ Failed to create view {view_name}: {e}")
+    
     def _load_kpi_tracker_sql(self) -> str:
         """Load the kpi_tracker.sql query from cur2_views/level_3_final/"""
+        # Determine correct path based on current working directory
+        import os
+        current_dir = os.getcwd()
+        
+        if current_dir.endswith('/tests'):
+            # Running from tests directory
+            views_base_path = '../cur2_views'
+        else:
+            # Running from project root
+            views_base_path = 'cur2_views'
+        
         # Look for kpi_tracker.sql in the project
         sql_paths = [
+            f"{views_base_path}/level_3_final/kpi_tracker.sql",
             "cur2_views/level_3_final/kpi_tracker.sql",
             "../cur2_views/level_3_final/kpi_tracker.sql",
             "../../cur2_views/level_3_final/kpi_tracker.sql"
         ]
         
+        # Try original kpi_tracker.sql first
         for sql_path in sql_paths:
             if Path(sql_path).exists():
-                with open(sql_path, 'r') as f:
-                    return f.read()
+                try:
+                    with open(sql_path, 'r') as f:
+                        sql_content = f.read()
+                    
+                    # Clean the SQL - remove CREATE statements and comments
+                    lines = sql_content.split('\n')
+                    cleaned_lines = []
+                    
+                    for line in lines:
+                        stripped = line.strip()
+                        if (stripped.startswith('--') or 
+                            stripped.startswith('CREATE OR REPLACE VIEW') or
+                            stripped.startswith('CREATE VIEW') or
+                            stripped == ''):
+                            if not stripped.startswith('CREATE'):  # Keep comments and empty lines
+                                cleaned_lines.append(line)
+                            continue
+                        cleaned_lines.append(line)
+                    
+                    kpi_sql_cleaned = '\n'.join(cleaned_lines)
+                    
+                    # Fix the DuckDB compatibility issue
+                    kpi_sql_fixed = kpi_sql_cleaned.replace(
+                        "GROUP BY 1, 2, 3, 4, 37",  # Column 37 = license_model causes issues
+                        "GROUP BY 1, 2, 3, 4, license_model"  # Use explicit column name
+                    )
+                    
+                    return kpi_sql_fixed
+                    
+                except Exception as e:
+                    print(f"⚠️ Error loading {sql_path}: {e}")
+                    continue
         
-        # Fallback: Generate basic KPI query if kpi_tracker.sql not found
-        print("⚠️  kpi_tracker.sql not found, using fallback query")
+        # Fallback: Try restructured version
+        print("⚠️ Original kpi_tracker.sql not found/failed, trying restructured version...")
+        restructured_paths = [
+            f"{views_base_path}/level_3_final/kpi_tracker_restructured.sql",
+            "cur2_views/level_3_final/kpi_tracker_restructured.sql",
+            "../cur2_views/level_3_final/kpi_tracker_restructured.sql",
+            "../../cur2_views/level_3_final/kpi_tracker_restructured.sql"
+        ]
+        
+        for sql_path in restructured_paths:
+            if Path(sql_path).exists():
+                try:
+                    with open(sql_path, 'r') as f:
+                        return f.read()  # Restructured version doesn't need cleaning
+                except Exception as e:
+                    print(f"⚠️ Error loading {sql_path}: {e}")
+                    continue
+        
+        # Final fallback: Generate basic KPI query if no SQL files found
+        print("⚠️ No kpi_tracker SQL files found, using fallback query")
         return self._get_fallback_kpi_query()
     
     def _get_fallback_kpi_query(self) -> str:
@@ -178,11 +323,17 @@ class KPISummaryAnalytics:
                                   payer_account_id: Optional[str], linked_account_id: Optional[str],
                                   tags_filter: Optional[Dict[str, str]]) -> Dict[str, Any]:
         """Transform DuckDB query result to API response format."""
-        if kpi_result.is_empty():
+        if len(kpi_result) == 0:
             return self._get_empty_response()
         
-        # Get first row of results (aggregated data)
-        row = kpi_result.row(0, named=True)
+        # Convert to pandas if needed for easier access
+        if hasattr(kpi_result, 'iloc'):
+            # Already pandas DataFrame
+            row = kpi_result.iloc[0]
+            row_dict = row.to_dict()
+        else:
+            # Polars DataFrame - convert to dict
+            row_dict = kpi_result.row(0, named=True)
         
         # Build comprehensive response structure
         response = {
@@ -190,63 +341,65 @@ class KPISummaryAnalytics:
                 "query_date": datetime.now().isoformat(),
                 "billing_periods": [billing_period] if billing_period else ["latest"],
                 "total_accounts": 1,  # Will be calculated from actual data
-                "data_source": "local_parquet" if self.engine.has_local_data() else "s3_parquet"
+                "data_source": "local_parquet" if hasattr(self.engine, 'has_local_data') and self.engine.has_local_data() else "cur20_local_parquet",
+                "data_export_type": self.config.data_export_type.value if hasattr(self.config, 'data_export_type') else "CUR2.0",
+                "records_analyzed": len(kpi_result)
             },
             "overall_spend": {
-                "billing_period": billing_period or "latest",
-                "payer_account_id": payer_account_id or row.get("payer_account_id", "unknown"),
-                "linked_account_id": linked_account_id or row.get("linked_account_id", "unknown"),
-                "spend_all_cost": float(row.get("spend_all_cost", 0)),
-                "unblended_cost": float(row.get("unblended_cost", 0)),
-                "tags_json": row.get("tags_json", "{}")
+                "billing_period": billing_period or str(row_dict.get("billing_period", "latest")),
+                "payer_account_id": payer_account_id or str(row_dict.get("payer_account_id", "unknown")),
+                "linked_account_id": linked_account_id or str(row_dict.get("linked_account_id", "unknown")),
+                "spend_all_cost": float(row_dict.get("spend_all_cost", 0)),
+                "unblended_cost": float(row_dict.get("unblended_cost", 0)),
+                "tags_json": str(row_dict.get("tags_json", "{}"))
             },
             "ec2_metrics": {
-                "ec2_all_cost": float(row.get("ec2_all_cost", 0)),
-                "ec2_usage_cost": float(row.get("ec2_usage_cost", 0)),
-                "ec2_spot_cost": float(row.get("ec2_spot_cost", 0)),
-                "ec2_spot_potential_savings": float(row.get("ec2_spot_potential_savings", 0)),
-                "ec2_previous_generation_cost": float(row.get("ec2_previous_generation_cost", 0)),
-                "ec2_previous_generation_potential_savings": float(row.get("ec2_previous_generation_potential_savings", 0)),
-                "ec2_graviton_eligible_cost": float(row.get("ec2_graviton_eligible_cost", 0)),
-                "ec2_graviton_cost": float(row.get("ec2_graviton_cost", 0)),
-                "ec2_graviton_potential_savings": float(row.get("ec2_graviton_potential_savings", 0)),
-                "ec2_amd_eligible_cost": float(row.get("ec2_amd_eligible_cost", 0)),
-                "ec2_amd_cost": float(row.get("ec2_amd_cost", 0)),
-                "ec2_amd_potential_savings": float(row.get("ec2_amd_potential_savings", 0))
+                "ec2_all_cost": float(row_dict.get("ec2_all_cost", 0)),
+                "ec2_usage_cost": float(row_dict.get("ec2_usage_cost", 0)),
+                "ec2_spot_cost": float(row_dict.get("ec2_spot_cost", 0)),
+                "ec2_spot_potential_savings": float(row_dict.get("ec2_spot_potential_savings", 0)),
+                "ec2_previous_generation_cost": float(row_dict.get("ec2_previous_generation_cost", 0)),
+                "ec2_previous_generation_potential_savings": float(row_dict.get("ec2_previous_generation_potential_savings", 0)),
+                "ec2_graviton_eligible_cost": float(row_dict.get("ec2_graviton_eligible_cost", 0)),
+                "ec2_graviton_cost": float(row_dict.get("ec2_graviton_cost", 0)),
+                "ec2_graviton_potential_savings": float(row_dict.get("ec2_graviton_potential_savings", 0)),
+                "ec2_amd_eligible_cost": float(row_dict.get("ec2_amd_eligible_cost", 0)),
+                "ec2_amd_cost": float(row_dict.get("ec2_amd_cost", 0)),
+                "ec2_amd_potential_savings": float(row_dict.get("ec2_amd_potential_savings", 0))
             },
             "rds_metrics": {
-                "rds_all_cost": float(row.get("rds_all_cost", 0)),
-                "rds_ondemand_cost": float(row.get("rds_ondemand_cost", 0)),
-                "rds_graviton_cost": float(row.get("rds_graviton_cost", 0)),
-                "rds_graviton_eligible_cost": float(row.get("rds_graviton_eligible_cost", 0)),
-                "rds_graviton_potential_savings": float(row.get("rds_graviton_potential_savings", 0)),
-                "rds_commit_potential_savings": float(row.get("rds_commit_potential_savings", 0)),
-                "rds_commit_savings": float(row.get("rds_commit_savings", 0)),
-                "rds_license": int(row.get("rds_license", 0)),
-                "rds_no_license": int(row.get("rds_no_license", 0)),
-                "rds_sql_server_cost": float(row.get("rds_sql_server_cost", 0)),
-                "rds_oracle_cost": float(row.get("rds_oracle_cost", 0))
+                "rds_all_cost": float(row_dict.get("rds_all_cost", 0)),
+                "rds_ondemand_cost": float(row_dict.get("rds_ondemand_cost", 0)),
+                "rds_graviton_cost": float(row_dict.get("rds_graviton_cost", 0)),
+                "rds_graviton_eligible_cost": float(row_dict.get("rds_graviton_eligible_cost", 0)),
+                "rds_graviton_potential_savings": float(row_dict.get("rds_graviton_potential_savings", 0)),
+                "rds_commit_potential_savings": float(row_dict.get("rds_commit_potential_savings", 0)),
+                "rds_commit_savings": float(row_dict.get("rds_commit_savings", 0)),
+                "rds_license": int(row_dict.get("rds_license", 0)),
+                "rds_no_license": int(row_dict.get("rds_no_license", 0)),
+                "rds_sql_server_cost": float(row_dict.get("rds_sql_server_cost", 0)),
+                "rds_oracle_cost": float(row_dict.get("rds_oracle_cost", 0))
             },
             "storage_metrics": {
-                "ebs_all_cost": float(row.get("ebs_all_cost", 0)),
-                "ebs_gp_all_cost": float(row.get("ebs_gp_all_cost", 0)),
-                "ebs_gp2_cost": float(row.get("ebs_gp2_cost", 0)),
-                "ebs_gp3_cost": float(row.get("ebs_gp3_cost", 0)),
-                "ebs_gp3_potential_savings": float(row.get("ebs_gp3_potential_savings", 0)),
-                "ebs_snapshots_under_1yr_cost": float(row.get("ebs_snapshots_under_1yr_cost", 0)),
-                "ebs_snapshots_over_1yr_cost": float(row.get("ebs_snapshots_over_1yr_cost", 0)),
-                "ebs_snapshot_cost": float(row.get("ebs_snapshot_cost", 0)),
-                "s3_all_storage_cost": float(row.get("s3_all_storage_cost", 0)),
-                "s3_standard_storage_cost": float(row.get("s3_standard_storage_cost", 0)),
-                "s3_standard_storage_potential_savings": float(row.get("s3_standard_storage_potential_savings", 0))
+                "ebs_all_cost": float(row_dict.get("ebs_all_cost", 0)),
+                "ebs_gp_all_cost": float(row_dict.get("ebs_gp_all_cost", 0)),
+                "ebs_gp2_cost": float(row_dict.get("ebs_gp2_cost", 0)),
+                "ebs_gp3_cost": float(row_dict.get("ebs_gp3_cost", 0)),
+                "ebs_gp3_potential_savings": float(row_dict.get("ebs_gp3_potential_savings", 0)),
+                "ebs_snapshots_under_1yr_cost": float(row_dict.get("ebs_snapshots_under_1yr_cost", 0)),
+                "ebs_snapshots_over_1yr_cost": float(row_dict.get("ebs_snapshots_over_1yr_cost", 0)),
+                "ebs_snapshot_cost": float(row_dict.get("ebs_snapshot_cost", 0)),
+                "s3_all_storage_cost": float(row_dict.get("s3_all_storage_cost", 0)),
+                "s3_standard_storage_cost": float(row_dict.get("s3_standard_storage_cost", 0)),
+                "s3_standard_storage_potential_savings": float(row_dict.get("s3_standard_storage_potential_savings", 0))
             },
             "compute_services": {
-                "compute_all_cost": float(row.get("compute_all_cost", 0)),
-                "compute_ondemand_cost": float(row.get("compute_ondemand_cost", 0)),
-                "compute_commit_potential_savings": float(row.get("compute_commit_potential_savings", 0)),
-                "compute_commit_savings": float(row.get("compute_commit_savings", 0)),
-                "dynamodb_all_cost": float(row.get("dynamodb_all_cost", 0)),
-                "lambda_all_cost": float(row.get("lambda_all_cost", 0))
+                "compute_all_cost": float(row_dict.get("compute_all_cost", 0)),
+                "compute_ondemand_cost": float(row_dict.get("compute_ondemand_cost", 0)),
+                "compute_commit_potential_savings": float(row_dict.get("compute_commit_potential_savings", 0)),
+                "compute_commit_savings": float(row_dict.get("compute_commit_savings", 0)),
+                "dynamodb_all_cost": float(row_dict.get("dynamodb_all_cost", 0)),
+                "lambda_all_cost": float(row_dict.get("lambda_all_cost", 0))
             }
         }
         

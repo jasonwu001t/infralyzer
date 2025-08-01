@@ -77,6 +77,7 @@ graph TB
             EP5[Discount Endpoints]
             EP6[AI Endpoints]
             EP7[MCP Endpoints]
+            EP8[SQL Query Endpoints]
         end
     end
 
@@ -134,6 +135,7 @@ graph TB
     EP5 --> FASTAPI
     EP6 --> FASTAPI
     EP7 --> FASTAPI
+    EP8 --> FASTAPI
 
     %% Utility connections
     FMT -.-> Analytics
@@ -152,7 +154,7 @@ graph TB
     class S3,CUR,FOCUS,LOCAL dataSource
     class DUCK,AUTH engine
     class KPI,SPEND,OPT,ALLOC,DISC,AI,MCP analytics
-    class FASTAPI,EP1,EP2,EP3,EP4,EP5,EP6,EP7 api
+    class FASTAPI,EP1,EP2,EP3,EP4,EP5,EP6,EP7,EP8 api
     class FINOPS,DEP interface
     class FMT,VAL,PERF,EXP utils
 ```
@@ -166,7 +168,7 @@ graph TB
 | **🧠 Core Engine**     | `DuckDBEngine`, `Authentication`                      | SQL execution engine with AWS credential management          |
 | **🎯 Interface**       | `FinOpsEngine`, `DataExportsPolars`                   | Unified access point and backward compatibility              |
 | **📊 Analytics**       | 7 specialized modules                                 | Domain-specific cost analytics and optimization              |
-| **🌐 API**             | `FastAPI` + 7 endpoint routers                        | Production-ready REST API with OpenAPI docs                  |
+| **🌐 API**             | `FastAPI` + 8 endpoint routers                        | Production-ready REST API with OpenAPI docs and SQL queries  |
 | **🛠️ Utilities**       | Formatters, Validators, Performance, Export           | Shared utilities for data processing and presentation        |
 
 ### Data Flow
@@ -176,7 +178,7 @@ graph TB
 3. **🦆 Query**: `DuckDBEngine` executes SQL on S3 or local cache
 4. **📊 Analytics**: Specialized modules perform domain-specific analysis
 5. **🚀 Interface**: `FinOpsEngine` provides unified access to all analytics
-6. **🌐 API**: FastAPI exposes REST endpoints for each analytics module
+6. **🌐 API**: FastAPI exposes REST endpoints for analytics modules and custom SQL queries
 
 ### Directory Structure
 
@@ -396,6 +398,34 @@ GET /api/v1/finops/mcp/tools
 POST /api/v1/finops/mcp/query
 WebSocket /api/v1/finops/mcp/stream
 ```
+
+### 🔍 SQL Query Interface
+
+Execute custom SQL queries for flexible data analysis:
+
+```http
+POST /api/v1/finops/sql/query      # Execute custom SQL queries
+GET  /api/v1/finops/sql/schema     # Get data schema and examples
+GET  /api/v1/finops/sql/tables     # List available tables
+```
+
+**Key Features:**
+- Custom SELECT queries on AWS cost data
+- Support for complex JOINs, CTEs, and window functions
+- JSON and CSV output formats
+- Built-in security validation (only SELECT queries allowed)
+- Access to main data table and pre-built cost optimization views
+
+**Example Query Request:**
+```json
+{
+  "sql": "SELECT product_servicecode, SUM(line_item_unblended_cost) as total_cost FROM CUR WHERE line_item_unblended_cost > 0 GROUP BY product_servicecode ORDER BY total_cost DESC LIMIT 5",
+  "limit": 1000,
+  "format": "json"
+}
+```
+
+> 📖 **Detailed Documentation**: See [`de_polars/api/README.md`](de_polars/api/README.md) for comprehensive SQL API documentation with examples, security features, and integration guides.
 
 ## 🔧 Creating Custom API Endpoints
 
