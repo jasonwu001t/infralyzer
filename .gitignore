@@ -1,8 +1,18 @@
 # Byte-compiled / optimized / DLL files
 
 # s3 path
-s3_bucket= 'cid-014498620306-data-local'
-s3_data_prefix='cur2/014498620306/cid-cur2/data'
+s3_bucket= 'cid-014498620306-data-local',
+s3_data_prefix='cur2/014498620306/cid-cur2/data',
+
+cur2_analytics/
+cache/
+
+tests/
+test_local_data/
+test_partitioner_output/
+test_views_output/
+test_exports/
+
 
 __pycache__/
 *.py[cod]

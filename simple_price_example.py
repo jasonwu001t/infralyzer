@@ -7,8 +7,7 @@ real on-demand and savings plan prices from AWS APIs based on instance attribute
 """
 
 from de_polars.engine.data_config import DataConfig, DataExportType
-from de_polars.data.pricing_api_manager import PricingApiManager
-from de_polars.data.savings_plan_api_manager import SavingsPlansApiManager
+from de_polars.data.aws_pricing_manager import AWSPricingManager
 
 
 def main():
@@ -25,12 +24,11 @@ def main():
         s3_data_prefix="dummy-prefix",
         data_export_type=DataExportType.CUR_2_0,
         aws_region="us-east-1",
-        local_data_path="./cache"  # For caching API results
+        local_data_path=None  # No caching - always fresh data
     )
     
-    # Initialize managers
-    pricing_manager = PricingApiManager(config)
-    sp_manager = SavingsPlansApiManager(config)
+    # Initialize unified pricing manager
+    pricing_manager = AWSPricingManager(config)
     
     # Example 1: Get on-demand price for a specific instance
     print("\n🔍 Example 1: Get On-Demand Price")
@@ -43,7 +41,7 @@ def main():
     print(f"Getting price for {instance_type} in {region} ({operating_system})...")
     
     # Make a real API call to AWS Pricing API
-    price = pricing_manager.get_simple_price(region, instance_type, operating_system)
+    price = pricing_manager.get_ondemand_price(region, instance_type, operating_system)
     
     if price:
         print(f"💸 On-Demand Price: ${price:.4f}/hour")
@@ -59,7 +57,7 @@ def main():
     print(f"Getting savings plan rate for {instance_type} in {region}...")
     
     # Make a real API call to AWS SavingsPlans API
-    sp_rate = sp_manager.get_simple_savings_plan_rate(instance_type, region)
+    sp_rate = pricing_manager.get_savings_plan_rate(instance_type, region)
     
     if sp_rate:
         print(f"💳 Savings Plan Rate: ${sp_rate:.4f}/hour")
@@ -73,16 +71,25 @@ def main():
     print("-" * 30)
     
     if price and sp_rate:
-        comparison = sp_manager.compare_savings_vs_ondemand(region, instance_type, price)
+        comparison = pricing_manager.compare_all_pricing_options(region, instance_type, operating_system)
         
         print(f"📊 Comparison for {comparison['instance_type']} in {comparison['region']}:")
-        print(f"   On-Demand: ${comparison['on_demand_hourly']:.4f}/hour (${comparison['on_demand_monthly']:.2f}/month)")
         
-        if comparison['has_savings_plan']:
-            print(f"   Savings Plan: ${comparison['savings_plan_hourly']:.4f}/hour (${comparison['savings_plan_monthly']:.2f}/month)")
-            print(f"   Monthly Savings: ${comparison['monthly_savings']:.2f}")
-            print(f"   Annual Savings: ${comparison['annual_savings']:.2f}")
-            print(f"   Savings Percentage: {comparison['savings_percentage']:.1f}%")
+        # On-demand pricing
+        if comparison['ondemand']['hourly_price']:
+            print(f"   On-Demand: ${comparison['ondemand']['hourly_price']:.4f}/hour (${comparison['ondemand']['monthly_price']:.2f}/month)")
+        
+        # Spot pricing
+        if comparison['spot']['hourly_price']:
+            print(f"   Spot: ${comparison['spot']['hourly_price']:.4f}/hour")
+            if comparison['spot']['savings_vs_ondemand_pct']:
+                print(f"     Savings: {comparison['spot']['savings_vs_ondemand_pct']:.1f}% vs on-demand")
+        
+        # Savings plan pricing
+        if comparison['savings_plan']['hourly_price']:
+            print(f"   Savings Plan: ${comparison['savings_plan']['hourly_price']:.4f}/hour (${comparison['savings_plan']['monthly_price']:.2f}/month)")
+            if comparison['savings_plan']['savings_vs_ondemand_pct']:
+                print(f"     Savings: {comparison['savings_plan']['savings_vs_ondemand_pct']:.1f}% vs on-demand")
         else:
             print("   No savings plan available")
     
@@ -103,10 +110,10 @@ def main():
         print(f"🔍 Fetching prices for {instance}...")
         
         # Get real on-demand price
-        od_price = pricing_manager.get_simple_price(region, instance, operating_system)
+        od_price = pricing_manager.get_ondemand_price(region, instance, operating_system)
         
         # Get real savings plan rate
-        sp_price = sp_manager.get_simple_savings_plan_rate(instance, region)
+        sp_price = pricing_manager.get_savings_plan_rate(instance, region)
         
         if od_price:
             if sp_price:
@@ -123,26 +130,32 @@ def main():
     print("\n🔍 Example 5: Real Usage Pattern")
     print("-" * 30)
     
-    print("To use with real AWS API calls:")
+    print("To use with the unified AWS pricing manager:")
     print()
-    print("# 1. Get on-demand pricing")
-    print("pricing_manager = PricingApiManager(config)")
-    print("price = pricing_manager.get_simple_price('us-east-1', 'm5.large', 'Linux')")
+    print("# 1. Initialize unified manager")
+    print("pricing_manager = AWSPricingManager(config)")
     print()
-    print("# 2. Get savings plan rates")
-    print("sp_manager = SavingsPlansApiManager(config)")
-    print("sp_rate = sp_manager.get_simple_savings_plan_rate('m5.large', 'us-east-1')")
+    print("# 2. Get on-demand pricing")
+    print("price = pricing_manager.get_ondemand_price('us-east-1', 'm5.large', 'Linux')")
     print()
-    print("# 3. Compare pricing")
-    print("comparison = sp_manager.compare_savings_vs_ondemand('us-east-1', 'm5.large', price)")
+    print("# 3. Get spot pricing")
+    print("spot = pricing_manager.get_current_spot_price('us-east-1', 'm5.large')")
     print()
-    print("# 4. Compare multiple instances")
-    print("comparison_df = pricing_manager.compare_instance_pricing('us-east-1', ['t3.micro', 'm5.large'])")
+    print("# 4. Get savings plan rates")
+    print("sp_rate = pricing_manager.get_savings_plan_rate('m5.large', 'us-east-1')")
+    print()
+    print("# 5. Compare all pricing options")
+    print("comparison = pricing_manager.compare_all_pricing_options('us-east-1', 'm5.large', 'Linux')")
+    print()
+    print("# 6. Find cheapest option")
+    print("cheapest = pricing_manager.get_cheapest_option('us-east-1', 'm5.large', 'Linux')")
     
-    print("\n✅ Simple pricing lookup examples completed!")
+    print("\n✅ Unified pricing manager examples completed!")
     print("\n💡 Key benefits:")
+    print("   - All pricing models (On-Demand, Spot, Reserved, Savings Plans) in one manager")
     print("   - Simple function calls based on instance attributes")
-    print("   - Automatic caching for performance")
+    print("   - Real-time data directly from AWS APIs")
+    print("   - No caching complexity - always fresh data")
     print("   - Easy comparison between on-demand and savings plan pricing")
     print("   - No complex SQL queries needed for basic price lookups")
 

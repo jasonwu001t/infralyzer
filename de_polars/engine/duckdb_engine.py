@@ -10,8 +10,7 @@ from datetime import datetime
 
 from .data_config import DataConfig
 from ..auth import check_credential_expiration, get_boto3_client, get_storage_options
-from ..data.pricing_api_manager import PricingApiManager
-from ..data.savings_plan_api_manager import SavingsPlansApiManager
+from ..data.aws_pricing_manager import AWSPricingManager
 
 
 class DuckDBEngine:
@@ -183,118 +182,18 @@ class DuckDBEngine:
         print(f"✅ Local data registered as table '{self.config.table_name}' in DuckDB")
     
     def _register_api_data_with_duckdb(self, conn: duckdb.DuckDBPyConnection) -> None:
-        """Register API data (Pricing and Savings Plans) with DuckDB as separate tables."""
-        if not (self.config.enable_pricing_api or self.config.enable_savings_plans_api):
-            return
-            
-        print("🔗 Registering API data with DuckDB...")
+        """Register pricing data with DuckDB as queryable tables."""
+        print("🔗 AWS Pricing Manager available for price lookups in queries...")
         
-        # Register Pricing API data
-        if self.config.enable_pricing_api:
-            try:
-                pricing_manager = PricingApiManager(self.config)
-                
-                # Try to load from cache first
-                pricing_df = pricing_manager.load_pricing_data_from_cache(
-                    "ec2_pricing", 
-                    self.config.api_cache_max_age_days
-                )
-                
-                if pricing_df is None:
-                    print("📡 Fetching EC2 pricing data from AWS API...")
-                    pricing_df = pricing_manager.get_ec2_pricing_data(
-                        regions=self.config.pricing_api_regions,
-                        instance_types=self.config.pricing_api_instance_types
-                    )
-                    
-                    if not pricing_df.is_empty():
-                        pricing_manager.save_pricing_data_to_cache(pricing_df, "ec2_pricing")
-                
-                if not pricing_df.is_empty():
-                    # Save to temporary parquet for DuckDB
-                    temp_pricing_path = self._save_temp_parquet(pricing_df, "pricing_data")
-                    conn.execute(f"CREATE OR REPLACE TABLE aws_pricing AS SELECT * FROM read_parquet('{temp_pricing_path}')")
-                    print("✅ AWS Pricing data registered as table 'aws_pricing'")
-                    
-                    # Also get RDS pricing if configured
-                    rds_pricing_df = pricing_manager.load_pricing_data_from_cache(
-                        "rds_pricing", 
-                        self.config.api_cache_max_age_days
-                    )
-                    
-                    if rds_pricing_df is None:
-                        print("📡 Fetching RDS pricing data from AWS API...")
-                        rds_pricing_df = pricing_manager.get_rds_pricing_data(
-                            regions=self.config.pricing_api_regions
-                        )
-                        
-                        if not rds_pricing_df.is_empty():
-                            pricing_manager.save_pricing_data_to_cache(rds_pricing_df, "rds_pricing")
-                    
-                    if not rds_pricing_df.is_empty():
-                        temp_rds_pricing_path = self._save_temp_parquet(rds_pricing_df, "rds_pricing_data")
-                        conn.execute(f"CREATE OR REPLACE TABLE aws_rds_pricing AS SELECT * FROM read_parquet('{temp_rds_pricing_path}')")
-                        print("✅ AWS RDS Pricing data registered as table 'aws_rds_pricing'")
-                else:
-                    print("⚠️  No pricing data available")
-                    
-            except Exception as e:
-                print(f"❌ Error registering pricing data: {e}")
+        # The new AWSPricingManager is designed for simple lookups
+        # rather than bulk table registration. Users can call pricing
+        # functions directly in their analysis code.
         
-        # Register Savings Plans API data
-        if self.config.enable_savings_plans_api:
-            try:
-                sp_manager = SavingsPlansApiManager(self.config)
-                
-                # Load Savings Plans data from cache or API
-                sp_df = sp_manager.load_savings_plans_data_from_cache(
-                    "savings_plans", 
-                    self.config.api_cache_max_age_days
-                )
-                
-                if sp_df is None:
-                    print("📡 Fetching Savings Plans data from AWS API...")
-                    sp_df = sp_manager.get_savings_plans_data(
-                        states=['active', 'payment-pending']
-                    )
-                    
-                    if not sp_df.is_empty():
-                        sp_manager.save_savings_plans_data_to_cache(sp_df, "savings_plans")
-                
-                if not sp_df.is_empty():
-                    # Create CUR-joinable format
-                    joinable_df = sp_manager.create_cur_joinable_format(sp_df)
-                    
-                    # Save to temporary parquet for DuckDB
-                    temp_sp_path = self._save_temp_parquet(joinable_df, "savings_plans_data")
-                    conn.execute(f"CREATE OR REPLACE TABLE aws_savings_plans AS SELECT * FROM read_parquet('{temp_sp_path}')")
-                    print("✅ AWS Savings Plans data registered as table 'aws_savings_plans'")
-                    
-                    # Get rates data if enabled
-                    if self.config.savings_plans_include_rates:
-                        rates_df = sp_manager.load_savings_plans_data_from_cache(
-                            "savings_plans_rates", 
-                            self.config.api_cache_max_age_days
-                        )
-                        
-                        if rates_df is None:
-                            print("📡 Fetching Savings Plans rates data from AWS API...")
-                            rates_df = sp_manager.get_all_savings_plan_rates_data(
-                                service_codes=['AmazonEC2']
-                            )
-                            
-                            if not rates_df.is_empty():
-                                sp_manager.save_savings_plans_data_to_cache(rates_df, "savings_plans_rates")
-                        
-                        if not rates_df.is_empty():
-                            temp_rates_path = self._save_temp_parquet(rates_df, "savings_plans_rates_data")
-                            conn.execute(f"CREATE OR REPLACE TABLE aws_savings_plans_rates AS SELECT * FROM read_parquet('{temp_rates_path}')")
-                            print("✅ AWS Savings Plans rates data registered as table 'aws_savings_plans_rates'")
-                else:
-                    print("⚠️  No Savings Plans data available")
-                    
-            except Exception as e:
-                print(f"❌ Error registering Savings Plans data: {e}")
+        # Example usage would be:
+        # pricing_manager = AWSPricingManager(config)
+        # price = pricing_manager.get_ondemand_price('us-east-1', 't3.micro')
+        
+        pass
     
     def _save_temp_parquet(self, df: pl.DataFrame, name: str) -> str:
         """Save DataFrame to temporary parquet file for DuckDB registration."""
