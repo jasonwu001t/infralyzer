@@ -118,8 +118,8 @@ class FinOpsEngine:
         Execute SQL query using the underlying DuckDB engine.
         
         Args:
-            sql_or_file: SQL query string, path to .sql file, or path to .parquet file
-            force_s3: Force query to run against S3 data (ignored for parquet files)
+            sql_or_file: SQL query string or path to .sql file
+            force_s3: Force query to run against S3 data
         
         Returns:
             Polars DataFrame with query results
@@ -134,31 +134,21 @@ class FinOpsEngine:
             # SQL file (absolute path) 
             result = engine.query("/path/to/query.sql")
             
-            # Parquet file (relative path)
-            result = engine.query("test_partitioner_output/cost_analytics_transform.parquet")
+            # Query parquet files using SQL syntax
+            result = engine.query("SELECT * FROM 'output/data.parquet'")
             
-            # Parquet file (absolute path)
-            result = engine.query("/path/to/data.parquet")
+            # Join multiple parquet files
+            result = engine.query(\"\"\"
+                SELECT a.*, b.budget 
+                FROM 'costs.parquet' a 
+                LEFT JOIN 'budgets.parquet' b ON a.account = b.account
+            \"\"\")
         """
         import os
-        import polars as pl
         from pathlib import Path
         
-        # Check if input is a parquet file path
-        if sql_or_file.endswith('.parquet'):
-            parquet_path = Path(sql_or_file)
-            
-            # Try as absolute path first
-            if parquet_path.is_absolute() and parquet_path.exists():
-                return pl.read_parquet(parquet_path)
-            # Try as relative path
-            elif parquet_path.exists():
-                return pl.read_parquet(parquet_path)
-            else:
-                raise FileNotFoundError(f"Parquet file not found: {parquet_path}")
-        
         # Check if input is a SQL file path
-        elif sql_or_file.endswith('.sql'):
+        if sql_or_file.endswith('.sql'):
             sql_path = Path(sql_or_file)
             
             # Try as absolute path first

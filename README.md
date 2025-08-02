@@ -1,29 +1,29 @@
-# DE-Polars: Advanced FinOps Cost Analytics Platform
+# DE-Polars: FinOps Cost Analytics
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
 [![DuckDB](https://img.shields.io/badge/DuckDB-SQL%20Engine-orange.svg)](https://duckdb.org/)
 
-**DE-Polars** is a comprehensive FinOps cost analytics platform that provides advanced SQL analysis of AWS Cost and Usage Reports (CUR) with local data caching for massive cost savings. Built with a modular architecture supporting FastAPI deployment for enterprise-grade cost optimization.
+SQL analysis of AWS Cost and Usage Reports (CUR) with local data caching to reduce S3 query costs. Modular architecture with FastAPI deployment support.
 
-## 🚀 Key Features
+## Key Features
 
-- **🔍 Enhanced Query Engine**: Unified interface supporting SQL strings, SQL files, parquet files, and multi-source data aggregation
-- **🧠 Advanced SQL Analytics**: DuckDB-powered SQL engine with window functions, CTEs, and complex joins
-- **💾 Local Data Caching**: Download S3 data locally to eliminate ongoing S3 query costs (90%+ cost reduction)
-- **📊 Modular Architecture**: Independent analytics modules for flexible deployment
-- **🔌 FastAPI Integration**: Production-ready REST API with auto-generated OpenAPI docs
-- **🤖 AI-Powered Insights**: Machine learning-based anomaly detection and optimization
-- **⚡ Real-time Analytics**: Comprehensive KPI dashboards and cost optimization recommendations
-- **🔄 Backward Compatible**: Existing DataExportsPolars code continues to work unchanged
-- **🔧 Rich Utilities**: Built-in formatters, validators, performance monitoring, and export tools
-- **💰 API Data Sources**: Direct AWS Pricing API and SavingsPlans API integration for real-time pricing lookup
+- **Query Engine**: SQL strings, SQL files, parquet files, and multi-source data aggregation
+- **SQL Analytics**: DuckDB engine with window functions, CTEs, and joins
+- **Local Data Caching**: Download S3 data locally to reduce S3 query costs (90%+ reduction)
+- **Modular Architecture**: Independent analytics modules
+- **FastAPI Integration**: REST API with OpenAPI docs
+- **AI Insights**: ML-based anomaly detection and optimization
+- **Analytics**: KPI dashboards and cost optimization recommendations
+- **Backward Compatible**: Existing DataExportsPolars code works unchanged
+- **Utilities**: Formatters, validators, performance monitoring, export tools
+- **API Data Sources**: AWS Pricing API and SavingsPlans API integration
 
-## 🏗️ Architecture Design
+## Architecture
 
-### System Architecture
+### System Design
 
-DE-Polars follows a **layered modular architecture** designed for scalability, maintainability, and enterprise-grade cost analytics:
+Modular architecture with layered components:
 
 ```mermaid
 graph TB
@@ -200,7 +200,7 @@ de_polars/
 │   ├── pricing_api_manager.py     # AWS Pricing API integration
 │   ├── savings_plan_api_manager.py # AWS SavingsPlans API integration
 ├── analytics/        # Modular cost analytics components
-│   ├── kpi_summary.py         # ⭐ Comprehensive KPI dashboard
+│   ├── kpi_summary.py         # KPI dashboard
 │   ├── spend_analytics.py     # Spend visibility & trends
 │   ├── optimization.py        # Cost optimization recommendations
 │   ├── allocation.py          # Cost allocation & tagging
@@ -264,7 +264,7 @@ engine = FinOpsEngine(config)
 engine.download_data_locally()
 
 # Access any analytics module independently
-kpi_summary = engine.kpi.get_comprehensive_summary()
+kpi_summary = engine.kpi.get_summary()
 spend_analysis = engine.spend.get_invoice_summary()
 optimization = engine.optimization.get_idle_resources()
 ```
@@ -298,15 +298,15 @@ LIMIT 10
 """)
 ```
 
-## 🔍 Enhanced Query Engine - Comprehensive Data Source Support
+## Query Engine
 
-The **enhanced `engine.query()` method** is the most powerful feature of DE-Polars, providing a unified interface to query **any data source** with automatic optimization and intelligent routing.
+The `engine.query()` method supports multiple data sources with a unified interface.
 
-### 🚀 Supported Data Sources
+### Supported Data Sources
 
-The query engine seamlessly handles **4 different data sources** with a single method:
+The query engine handles 4 data source types:
 
-#### 1. **SQL Query Strings** (Direct Execution)
+#### 1. SQL Query Strings
 
 ```python
 # Simple queries
@@ -326,7 +326,7 @@ result = engine.query("""
 """)
 ```
 
-#### 2. **SQL Files** (.sql files)
+#### 2. SQL Files
 
 ```python
 # Execute SQL from files (relative paths)
@@ -337,47 +337,62 @@ result = engine.query("my_queries/monthly_summary.sql")
 result = engine.query("/path/to/complex_analysis.sql")
 ```
 
-#### 3. **Parquet Files** (.parquet files - Direct Loading)
+#### 3. Parquet Files (SQL-based)
 
 ```python
-# Query saved parquet files directly (lightning fast!)
-result = engine.query("output/monthly_costs.parquet")
-result = engine.query("test_partitioner_output/cost_summary.parquet")
+# Query parquet files using SQL syntax
+result = engine.query("SELECT * FROM 'output/monthly_costs.parquet'")
+result = engine.query("SELECT * FROM 'test_partitioner_output/cost_summary.parquet'")
 
-# Query any parquet file with absolute path
-result = engine.query("/data/exports/cost_analysis_results.parquet")
+# Query parquet files with filtering and aggregation
+result = engine.query("""
+    SELECT
+        product_servicecode,
+        SUM(total_cost) as service_total
+    FROM 'output/monthly_costs.parquet'
+    WHERE total_cost > 100
+    GROUP BY product_servicecode
+    ORDER BY service_total DESC
+""")
+
+# Join multiple parquet files
+result = engine.query("""
+    SELECT
+        a.account_id,
+        a.total_cost,
+        b.budget_amount
+    FROM 'reports/account_costs.parquet' a
+    LEFT JOIN 'reports/account_budgets.parquet' b
+        ON a.account_id = b.account_id
+""")
 ```
 
-#### 4. **Aggregated Table Queries** (S3 or Local Multi-File Tables)
+#### 4. Multi-File Tables
 
 ```python
-# Automatic aggregation of multiple parquet files into unified tables
-# When multiple files exist, they're automatically combined into a single queryable table
-
-# Force S3 querying (uses S3 API calls)
+# Multiple parquet files combined into unified tables
+# Force S3 querying
 result = engine.query("SELECT * FROM CUR LIMIT 1000", force_s3=True)
 
-# Prefer local data (uses local cache - zero S3 costs!)
-result = engine.query("SELECT * FROM CUR LIMIT 1000")  # Default behavior
+# Use local data (default)
+result = engine.query("SELECT * FROM CUR LIMIT 1000")
 ```
 
-### ⚡ Intelligent Data Source Selection
+### Performance & Cost Comparison
 
-The query engine automatically optimizes performance and costs:
+| Data Source             | Performance     | S3 Costs                  | Use Case                      |
+| ----------------------- | --------------- | ------------------------- | ----------------------------- |
+| **Parquet Files** (SQL) | ⚡ **Instant**  | ✅ **Zero**               | Pre-computed results, reports |
+| **Local Cache**         | 🚀 **Fast**     | ✅ **Zero**               | Full dataset analytics        |
+| **S3 Direct**           | 🐌 Slower       | 💰 **Costs Apply**        | Fresh data, one-time queries  |
+| **SQL Files**           | 📄 **Variable** | 📊 **Depends on content** | Reusable query templates      |
 
-| Data Source       | Performance     | S3 Costs                  | Use Case                      |
-| ----------------- | --------------- | ------------------------- | ----------------------------- |
-| **Parquet Files** | ⚡ **Instant**  | ✅ **Zero**               | Pre-computed results, reports |
-| **Local Cache**   | 🚀 **Fast**     | ✅ **Zero**               | Full dataset analytics        |
-| **S3 Direct**     | 🐌 Slower       | 💰 **Costs Apply**        | Fresh data, one-time queries  |
-| **SQL Files**     | 📄 **Variable** | 📊 **Depends on content** | Reusable query templates      |
+### Workflow Examples
 
-### 💡 Powerful Workflow Examples
-
-#### Workflow 1: SQL Development & Caching
+#### SQL Development & Caching
 
 ```python
-# 1. Develop and execute complex SQL
+# Execute complex SQL
 complex_analysis = engine.query("""
     WITH monthly_summary AS (
         SELECT
@@ -392,21 +407,21 @@ complex_analysis = engine.query("""
     ORDER BY month DESC, monthly_cost DESC
 """)
 
-# 2. Save results for future use
+# Save results
 complex_analysis.write_parquet("output/monthly_analysis.parquet")
 
-# 3. Query saved results instantly (no database overhead!)
-cached_results = engine.query("output/monthly_analysis.parquet")
+# Query saved results
+cached_results = engine.query("SELECT * FROM 'output/monthly_analysis.parquet'")
 ```
 
-#### Workflow 2: SQL File Library Management
+#### SQL File Library Management
 
 ```python
-# 1. Execute SQL files from your library
+# Execute SQL files
 cost_trends = engine.query("analytics/cost_trend_analysis.sql")
 efficiency_metrics = engine.query("kpis/resource_efficiency.sql")
 
-# 2. Batch process multiple SQL files
+# Batch process multiple SQL files
 sql_files = [
     "analytics/service_costs.sql",
     "analytics/region_analysis.sql",
@@ -416,71 +431,67 @@ sql_files = [
 results = {}
 for sql_file in sql_files:
     results[sql_file] = engine.query(sql_file)
-    # Optionally save each result
     output_name = sql_file.replace('.sql', '.parquet').replace('/', '_')
     results[sql_file].write_parquet(f"output/{output_name}")
 ```
 
-#### Workflow 3: Performance-Optimized Analytics Pipeline
+#### Performance-Optimized Pipeline
 
 ```python
-# 1. One-time: Download full dataset locally (eliminates future S3 costs)
+# Download dataset locally
 engine.download_data_locally()
 
-# 2. Daily: Execute heavy analytics on local data (zero S3 costs)
-daily_summary = engine.query("analytics/daily_cost_summary.sql")  # Uses local cache
+# Execute analytics on local data
+daily_summary = engine.query("analytics/daily_cost_summary.sql")
 daily_summary.write_parquet(f"reports/daily_{today}.parquet")
 
-# 3. Real-time: Query cached results instantly
-latest_report = engine.query(f"reports/daily_{today}.parquet")  # Instant load
+# Query cached results
+latest_report = engine.query(f"reports/daily_{today}.parquet")
 ```
 
-### 🎯 Advanced Query Features
+### Query Features
 
-#### Error Handling & File Detection
+#### Error Handling
 
 ```python
 try:
-    # Automatic file type detection and validation
-    result = engine.query("my_analysis.sql")        # Loads and executes SQL file
-    result = engine.query("cached_data.parquet")    # Direct parquet loading
-    result = engine.query("SELECT * FROM CUR")      # Direct SQL execution
+    result = engine.query("my_analysis.sql")
+    result = engine.query("SELECT * FROM 'cached_data.parquet'")
+    result = engine.query("SELECT * FROM CUR")
 except FileNotFoundError as e:
     print(f"File not found: {e}")
 except Exception as e:
     print(f"Query execution error: {e}")
 ```
 
-#### Mixing Data Sources in Pipelines
+#### Mixing Data Sources
 
 ```python
 # Execute SQL file and cache result
 analysis = engine.query("complex_analytics/quarterly_analysis.sql")
 analysis.write_parquet("cache/quarterly_results.parquet")
 
-# Later: Query cached results for reporting
-report_data = engine.query("cache/quarterly_results.parquet")
+# Query cached results
+report_data = engine.query("SELECT * FROM 'cache/quarterly_results.parquet'")
 
-# Combine with real-time data for updates
+# Combine with real-time data
 current_month = engine.query("SELECT * FROM CUR WHERE billing_period = '2025-08'")
 ```
 
-### 📊 Cost Optimization Summary
+### Cost Summary
 
-| Query Type                         | Data Loading     | S3 API Calls                | Cost Impact               |
-| ---------------------------------- | ---------------- | --------------------------- | ------------------------- |
-| `engine.query("SELECT ...")`       | Full dataset     | ✅ Local first, S3 fallback | 💰 **90% cost reduction** |
-| `engine.query("query.sql")`        | Full dataset     | ✅ Local first, S3 fallback | 💰 **90% cost reduction** |
-| `engine.query("data.parquet")`     | Direct file load | ❌ **Zero S3 calls**        | 💚 **100% cost savings**  |
-| `engine.query(..., force_s3=True)` | Full dataset     | ❌ **Forces S3 usage**      | 💸 Full S3 query costs    |
+| Query Type                                     | Data Loading     | S3 API Calls                | Cost Impact               |
+| ---------------------------------------------- | ---------------- | --------------------------- | ------------------------- |
+| `engine.query("SELECT ...")`                   | Full dataset     | ✅ Local first, S3 fallback | 💰 **90% cost reduction** |
+| `engine.query("query.sql")`                    | Full dataset     | ✅ Local first, S3 fallback | 💰 **90% cost reduction** |
+| `engine.query("SELECT * FROM 'data.parquet'")` | Direct file load | ❌ **Zero S3 calls**        | 💚 **100% cost savings**  |
+| `engine.query(..., force_s3=True)`             | Full dataset     | ❌ **Forces S3 usage**      | 💸 Full S3 query costs    |
 
-## 💰 AWS Pricing API Integration
+## AWS Pricing API Integration
 
-DE-Polars now includes direct integration with AWS Pricing API and SavingsPlans API for real-time pricing lookups, enabling cost analysis without complex SQL queries.
+Direct integration with AWS Pricing API and SavingsPlans API for pricing lookups.
 
-### Simple Price Lookup Functions
-
-Get on-demand and savings plan prices using simple function calls based on instance attributes:
+### Price Lookup Functions
 
 ```python
 from de_polars.data.pricing_api_manager import PricingApiManager
@@ -819,9 +830,9 @@ GET  /api/v1/finops/sql/tables     # List available tables
 }
 ```
 
-> 📖 **Detailed Documentation**: See [`de_polars/api/README.md`](de_polars/api/README.md) for comprehensive SQL API documentation with examples, security features, and integration guides.
+> 📖 **Documentation**: See [`de_polars/api/README.md`](de_polars/api/README.md) for SQL API documentation with examples, security features, and integration guides.
 
-## 🔧 Creating Custom API Endpoints
+## Creating Custom API Endpoints
 
 ### Step 1: Create Analytics Module
 
@@ -924,9 +935,9 @@ def _create_app(self) -> FastAPI:
     app.include_router(custom_router, prefix="/api/v1/finops", tags=["Custom"])
 ```
 
-## 📈 Example Use Cases
+## Example Use Cases
 
-### 1. Comprehensive Cost Dashboard
+### 1. Cost Dashboard
 
 ```python
 # Get complete dashboard data
@@ -939,7 +950,7 @@ print(f"Optimization Potential: ${dashboard['kpi_summary']['savings_summary']['t
 ### 2. Cost Health Assessment
 
 ```python
-# Run comprehensive cost health check
+# Run cost health check
 health = engine.run_cost_health_check()
 
 print(f"Overall Health Score: {health['overall_score']}/100")
@@ -978,7 +989,7 @@ validation = DataValidator.validate_cost_data(your_dataframe)
 print(f"Data quality score: {validation['data_quality_score']}/100")
 ```
 
-### 5. Advanced SQL Analytics
+### 5. SQL Analytics
 
 ```python
 # Complex analytical query
@@ -1007,7 +1018,7 @@ ORDER BY ABS(growth_rate) DESC
 """)
 ```
 
-## 🐳 Docker Deployment
+## Docker Deployment
 
 Create `Dockerfile`:
 
@@ -1051,7 +1062,7 @@ Run with:
 docker-compose up -d
 ```
 
-## 💾 Cost Optimization with Local Caching
+## Cost Optimization with Local Caching
 
 ### Initial Setup (One-time)
 
@@ -1073,7 +1084,7 @@ status = engine.check_local_data_status()
 print(f"Local data: {status['total_files']} files, {status['total_size_mb']:.1f} MB")
 ```
 
-## 🔒 Security & Authentication
+## Security & Authentication
 
 ### API Key Authentication
 
@@ -1106,14 +1117,14 @@ config = DataConfig(
 )
 ```
 
-## 📋 Supported Data Export Types
+## Supported Data Export Types
 
 - **CUR 2.0**: `DataExportType.CUR_2_0` - AWS Cost and Usage Report v2.0
 - **FOCUS 1.0**: `DataExportType.FOCUS_1_0` - FinOps Open Cost and Usage Specification
 - **COH**: `DataExportType.COH` - AWS Cost Optimization Hub
 - **Carbon Emissions**: `DataExportType.CARBON_EMISSION` - AWS Carbon Footprint
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -1121,11 +1132,11 @@ config = DataConfig(
 4. Test thoroughly
 5. Submit a pull request
 
-## 📝 License
+## License
 
 MIT License - see LICENSE file for details.
 
-## 🆘 Support
+## Support
 
 - **Documentation**: Check the `/docs` endpoint when running the API
 - **Issues**: GitHub Issues
@@ -1133,6 +1144,4 @@ MIT License - see LICENSE file for details.
 
 ---
 
-**Ready to optimize your AWS costs?** 🚀
-
-Start with the **enhanced `engine.query()` method** - query SQL strings, SQL files, and parquet files with one unified interface. Add local data caching to eliminate S3 query costs, then build your custom analytics on top of the modular architecture!
+Start with the `engine.query()` method - query SQL strings, SQL files, and parquet files with one unified interface. Add local data caching to reduce S3 query costs, then build custom analytics on the modular architecture.
