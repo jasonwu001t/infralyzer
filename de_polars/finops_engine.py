@@ -113,9 +113,69 @@ class FinOpsEngine:
         return self._mcp
     
     # Direct engine access methods
-    def query(self, sql: str, force_s3: bool = False):
-        """Execute SQL query using the underlying DuckDB engine."""
-        return self.engine.query(sql, force_s3)
+    def query(self, sql_or_file: str, force_s3: bool = False):
+        """
+        Execute SQL query using the underlying DuckDB engine.
+        
+        Args:
+            sql_or_file: SQL query string, path to .sql file, or path to .parquet file
+            force_s3: Force query to run against S3 data (ignored for parquet files)
+        
+        Returns:
+            Polars DataFrame with query results
+            
+        Examples:
+            # SQL string
+            result = engine.query("SELECT * FROM CUR LIMIT 10")
+            
+            # SQL file (relative path)
+            result = engine.query("cur2_analytics/cost_analytics_transform.sql")
+            
+            # SQL file (absolute path) 
+            result = engine.query("/path/to/query.sql")
+            
+            # Parquet file (relative path)
+            result = engine.query("test_partitioner_output/cost_analytics_transform.parquet")
+            
+            # Parquet file (absolute path)
+            result = engine.query("/path/to/data.parquet")
+        """
+        import os
+        import polars as pl
+        from pathlib import Path
+        
+        # Check if input is a parquet file path
+        if sql_or_file.endswith('.parquet'):
+            parquet_path = Path(sql_or_file)
+            
+            # Try as absolute path first
+            if parquet_path.is_absolute() and parquet_path.exists():
+                return pl.read_parquet(parquet_path)
+            # Try as relative path
+            elif parquet_path.exists():
+                return pl.read_parquet(parquet_path)
+            else:
+                raise FileNotFoundError(f"Parquet file not found: {parquet_path}")
+        
+        # Check if input is a SQL file path
+        elif sql_or_file.endswith('.sql'):
+            sql_path = Path(sql_or_file)
+            
+            # Try as absolute path first
+            if sql_path.is_absolute() and sql_path.exists():
+                with open(sql_path, 'r') as file:
+                    sql_content = file.read()
+            # Try as relative path
+            elif sql_path.exists():
+                with open(sql_path, 'r') as file:
+                    sql_content = file.read()
+            else:
+                raise FileNotFoundError(f"SQL file not found: {sql_path}")
+                
+            return self.engine.query(sql_content, force_s3)
+        else:
+            # Treat as SQL string
+            return self.engine.query(sql_or_file, force_s3)
     
     def has_local_data(self) -> bool:
         """Check if local data is available."""

@@ -8,6 +8,7 @@
 
 ## 🚀 Key Features
 
+- **🔍 Enhanced Query Engine**: Unified interface supporting SQL strings, SQL files, parquet files, and multi-source data aggregation
 - **🧠 Advanced SQL Analytics**: DuckDB-powered SQL engine with window functions, CTEs, and complex joins
 - **💾 Local Data Caching**: Download S3 data locally to eliminate ongoing S3 query costs (90%+ cost reduction)
 - **📊 Modular Architecture**: Independent analytics modules for flexible deployment
@@ -296,6 +297,182 @@ FROM CUR
 LIMIT 10
 """)
 ```
+
+## 🔍 Enhanced Query Engine - Comprehensive Data Source Support
+
+The **enhanced `engine.query()` method** is the most powerful feature of DE-Polars, providing a unified interface to query **any data source** with automatic optimization and intelligent routing.
+
+### 🚀 Supported Data Sources
+
+The query engine seamlessly handles **4 different data sources** with a single method:
+
+#### 1. **SQL Query Strings** (Direct Execution)
+
+```python
+# Simple queries
+result = engine.query("SELECT COUNT(*) FROM CUR")
+
+# Complex analytical queries with window functions
+result = engine.query("""
+    SELECT
+        product_servicecode,
+        SUM(line_item_unblended_cost) as total_cost,
+        RANK() OVER (ORDER BY SUM(line_item_unblended_cost) DESC) as cost_rank
+    FROM CUR
+    WHERE line_item_unblended_cost > 0
+    GROUP BY product_servicecode
+    ORDER BY total_cost DESC
+    LIMIT 10
+""")
+```
+
+#### 2. **SQL Files** (.sql files)
+
+```python
+# Execute SQL from files (relative paths)
+result = engine.query("cur2_analytics/cost_analytics_transform.sql")
+result = engine.query("my_queries/monthly_summary.sql")
+
+# Execute SQL from files (absolute paths)
+result = engine.query("/path/to/complex_analysis.sql")
+```
+
+#### 3. **Parquet Files** (.parquet files - Direct Loading)
+
+```python
+# Query saved parquet files directly (lightning fast!)
+result = engine.query("output/monthly_costs.parquet")
+result = engine.query("test_partitioner_output/cost_summary.parquet")
+
+# Query any parquet file with absolute path
+result = engine.query("/data/exports/cost_analysis_results.parquet")
+```
+
+#### 4. **Aggregated Table Queries** (S3 or Local Multi-File Tables)
+
+```python
+# Automatic aggregation of multiple parquet files into unified tables
+# When multiple files exist, they're automatically combined into a single queryable table
+
+# Force S3 querying (uses S3 API calls)
+result = engine.query("SELECT * FROM CUR LIMIT 1000", force_s3=True)
+
+# Prefer local data (uses local cache - zero S3 costs!)
+result = engine.query("SELECT * FROM CUR LIMIT 1000")  # Default behavior
+```
+
+### ⚡ Intelligent Data Source Selection
+
+The query engine automatically optimizes performance and costs:
+
+| Data Source       | Performance     | S3 Costs                  | Use Case                      |
+| ----------------- | --------------- | ------------------------- | ----------------------------- |
+| **Parquet Files** | ⚡ **Instant**  | ✅ **Zero**               | Pre-computed results, reports |
+| **Local Cache**   | 🚀 **Fast**     | ✅ **Zero**               | Full dataset analytics        |
+| **S3 Direct**     | 🐌 Slower       | 💰 **Costs Apply**        | Fresh data, one-time queries  |
+| **SQL Files**     | 📄 **Variable** | 📊 **Depends on content** | Reusable query templates      |
+
+### 💡 Powerful Workflow Examples
+
+#### Workflow 1: SQL Development & Caching
+
+```python
+# 1. Develop and execute complex SQL
+complex_analysis = engine.query("""
+    WITH monthly_summary AS (
+        SELECT
+            DATE_TRUNC('month', line_item_usage_start_date) as month,
+            product_servicecode,
+            SUM(line_item_unblended_cost) as monthly_cost
+        FROM CUR
+        GROUP BY 1, 2
+    )
+    SELECT * FROM monthly_summary
+    WHERE monthly_cost > 100
+    ORDER BY month DESC, monthly_cost DESC
+""")
+
+# 2. Save results for future use
+complex_analysis.write_parquet("output/monthly_analysis.parquet")
+
+# 3. Query saved results instantly (no database overhead!)
+cached_results = engine.query("output/monthly_analysis.parquet")
+```
+
+#### Workflow 2: SQL File Library Management
+
+```python
+# 1. Execute SQL files from your library
+cost_trends = engine.query("analytics/cost_trend_analysis.sql")
+efficiency_metrics = engine.query("kpis/resource_efficiency.sql")
+
+# 2. Batch process multiple SQL files
+sql_files = [
+    "analytics/service_costs.sql",
+    "analytics/region_analysis.sql",
+    "analytics/account_summary.sql"
+]
+
+results = {}
+for sql_file in sql_files:
+    results[sql_file] = engine.query(sql_file)
+    # Optionally save each result
+    output_name = sql_file.replace('.sql', '.parquet').replace('/', '_')
+    results[sql_file].write_parquet(f"output/{output_name}")
+```
+
+#### Workflow 3: Performance-Optimized Analytics Pipeline
+
+```python
+# 1. One-time: Download full dataset locally (eliminates future S3 costs)
+engine.download_data_locally()
+
+# 2. Daily: Execute heavy analytics on local data (zero S3 costs)
+daily_summary = engine.query("analytics/daily_cost_summary.sql")  # Uses local cache
+daily_summary.write_parquet(f"reports/daily_{today}.parquet")
+
+# 3. Real-time: Query cached results instantly
+latest_report = engine.query(f"reports/daily_{today}.parquet")  # Instant load
+```
+
+### 🎯 Advanced Query Features
+
+#### Error Handling & File Detection
+
+```python
+try:
+    # Automatic file type detection and validation
+    result = engine.query("my_analysis.sql")        # Loads and executes SQL file
+    result = engine.query("cached_data.parquet")    # Direct parquet loading
+    result = engine.query("SELECT * FROM CUR")      # Direct SQL execution
+except FileNotFoundError as e:
+    print(f"File not found: {e}")
+except Exception as e:
+    print(f"Query execution error: {e}")
+```
+
+#### Mixing Data Sources in Pipelines
+
+```python
+# Execute SQL file and cache result
+analysis = engine.query("complex_analytics/quarterly_analysis.sql")
+analysis.write_parquet("cache/quarterly_results.parquet")
+
+# Later: Query cached results for reporting
+report_data = engine.query("cache/quarterly_results.parquet")
+
+# Combine with real-time data for updates
+current_month = engine.query("SELECT * FROM CUR WHERE billing_period = '2025-08'")
+```
+
+### 📊 Cost Optimization Summary
+
+| Query Type                         | Data Loading     | S3 API Calls                | Cost Impact               |
+| ---------------------------------- | ---------------- | --------------------------- | ------------------------- |
+| `engine.query("SELECT ...")`       | Full dataset     | ✅ Local first, S3 fallback | 💰 **90% cost reduction** |
+| `engine.query("query.sql")`        | Full dataset     | ✅ Local first, S3 fallback | 💰 **90% cost reduction** |
+| `engine.query("data.parquet")`     | Direct file load | ❌ **Zero S3 calls**        | 💚 **100% cost savings**  |
+| `engine.query(..., force_s3=True)` | Full dataset     | ❌ **Forces S3 usage**      | 💸 Full S3 query costs    |
 
 ## 💰 AWS Pricing API Integration
 
@@ -958,4 +1135,4 @@ MIT License - see LICENSE file for details.
 
 **Ready to optimize your AWS costs?** 🚀
 
-Start with local data caching to eliminate S3 query costs, then build your custom analytics on top of the modular architecture!
+Start with the **enhanced `engine.query()` method** - query SQL strings, SQL files, and parquet files with one unified interface. Add local data caching to eliminate S3 query costs, then build your custom analytics on top of the modular architecture!
