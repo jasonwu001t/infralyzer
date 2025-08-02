@@ -1,229 +1,255 @@
-# AWS FinOps REST API - Product Summary
+# FinOps Cost Analytics Platform - Product Summary
 
-## 🎯 Executive Summary
+## Executive Summary
 
-This document outlines the product requirements for a comprehensive **AWS FinOps REST API** that leverages the **DE-Polars library** with **local data caching** to deliver enterprise-grade cost management capabilities while **reducing AWS costs by 90%+**.
+REST API platform for AWS cost analytics built on DE-Polars library with local data caching. Supports SQL-based cost analysis, optimization recommendations, and AI-powered insights.
 
-## 🔑 Key Value Propositions
+## Core Capabilities
 
-### 💰 Cost Optimization
+### Query Engine
 
-- **90%+ reduction** in S3 data transfer costs through local caching
-- **Real-time cost analytics** with <2 second response times
-- **AI-powered optimization** recommendations with ROI tracking
-- **Enterprise discount tracking** and negotiation support
+- Unified interface: SQL strings, SQL files, parquet files, S3/local multi-file tables
+- Local data caching reduces S3 API calls
+- DuckDB SQL engine with window functions, CTEs, joins
+- Support for CUR 2.0, FOCUS 1.0, COH, Carbon Emissions data formats
 
-### 🚀 Performance & Scalability
+### Analytics Modules
 
-- **Local data caching** eliminates S3 query costs after initial download
-- **DuckDB SQL engine** provides advanced analytical capabilities
-- **Sub-second API responses** for dashboard queries
-- **100+ concurrent users** supported
+- KPI summary with cost metrics dashboard
+- Spend analytics with trend analysis
+- Cost optimization recommendations
+- Cost allocation and tagging management
+- Discount tracking and analysis
+- AI-powered anomaly detection and forecasting
+- Model Context Protocol (MCP) integration for AI assistants
 
-### 🧠 Intelligence & Automation
+## API Endpoints
 
-- **Machine learning** anomaly detection and forecasting
-- **Natural language** cost analysis through MCP integration
-- **Automated tagging** and cost allocation rules
-- **Predictive alerts** for budget overruns
+### KPI Analytics (`/api/v1/finops/kpi/`)
 
-## 📊 Core Capabilities
+- `GET /summary` - Cost metrics dashboard data
+- Billing period filtering, account filtering, tag filtering
+- Data from kpi_tracker.sql with aggregated cost metrics
 
-### View 1: Actual Spend Analytics
+### Spend Analytics (`/api/v1/finops/spend/`)
 
-- **Invoice tracking** with trend analysis and forecasting
-- **Multi-dimensional breakdowns** (region × service × account)
-- **Real-time dashboards** with drill-down capabilities
-- **Export functionality** for business reporting
+- `GET /invoice-summary` - Invoice tracking and trends
+- `GET /trends` - Historical spending patterns
+- `GET /breakdowns` - Multi-dimensional cost analysis (service, region, account)
 
-### View 2: Cost Optimization Intelligence
+### Optimization (`/api/v1/finops/optimization/`)
 
-- **Idle resource detection** with risk assessment
-- **Rightsizing recommendations** based on utilization data
-- **Cross-service migration** opportunities (EC2→Lambda)
-- **Network optimization** for VPC transfer costs
+- `GET /idle-resources` - Idle resource detection
+- `GET /rightsizing` - Instance rightsizing recommendations
+- `GET /cost-savings` - Cost reduction opportunities
 
-### View 3: Cost Allocation & Tagging
+### Allocation (`/api/v1/finops/allocation/`)
 
-- **Multi-account cost allocation** and chargeback
-- **Tagging compliance** analysis and automation
-- **Cost center breakdowns** with variance tracking
-- **Third-party integration** support
+- `GET /cost-centers` - Cost center breakdown
+- `GET /tag-compliance` - Tag compliance analysis
+- `GET /chargeback` - Multi-account cost allocation
 
-### View 4: Private Discount Tracking
+### Discounts (`/api/v1/finops/discounts/`)
 
-- **Enterprise agreement** utilization tracking
-- **Negotiation opportunity** identification
-- **Usage forecasting** for commitment planning
-- **Market benchmarking** for pricing optimization
+- `GET /utilization` - Discount utilization tracking
+- `GET /opportunities` - Savings opportunities
+- `GET /coverage` - Coverage analysis
 
-### View 5: MCP Server Integration
+### SQL Interface (`/api/v1/finops/sql/`)
 
-- **Model Context Protocol** support for AI assistants
-- **Natural language querying** capabilities
-- **Real-time streaming** for live dashboards
-- **Tool exposure** for automated analysis
+- `POST /query` - Execute custom SQL queries
+- `GET /tables` - Available table schemas
+- Row limits, query validation, security controls
 
-### View 6: AI-Powered Recommendations
+### AI Recommendations (`/api/v1/finops/ai/`)
 
-- **Anomaly detection** with root cause analysis
-- **Pattern recognition** across historical data
-- **Scenario planning** and what-if analysis
-- **Industry benchmarking** and insights
+- `GET /anomaly-detection` - ML-based spend anomaly detection
+- `GET /forecasting` - Predictive cost analysis
+- `GET /recommendations` - AI-generated cost optimization suggestions
 
-## 🏗️ Technical Architecture
+### MCP Integration (`/api/v1/finops/mcp/`)
 
-### Data Processing Engine
+- `GET /resources` - Available cost data resources
+- `POST /query` - Natural language cost queries
+- `GET /tools` - Available analysis tools
 
-- **DE-Polars** with DuckDB for high-performance analytics
-- **Local data caching** preserving S3 directory structure
-- **Partition-aware discovery** for efficient data access
-- **Multi-format support** (Parquet, Gzip)
+## Technical Architecture
 
-### API Design
+### Data Processing
 
-- **RESTful endpoints** with consistent JSON responses
-- **JWT authentication** with role-based access control
-- **Rate limiting** and comprehensive error handling
-- **WebSocket support** for real-time updates
+- DuckDB SQL engine with Polars DataFrame output
+- Local data caching with S3 directory structure preservation
+- Partition-aware data discovery (BILLING_PERIOD, billing_period, date)
+- Multi-format support: Parquet files from AWS Data Exports
+- Support for CUR 2.0, FOCUS 1.0, COH, Carbon Emissions
 
-### Data Strategy
+### API Implementation
 
-- **Primary**: Local cached AWS Data Exports
-- **Secondary**: PostgreSQL for configurations and results
-- **Cache**: Redis for API response optimization
-- **Refresh**: Scheduled daily updates with manual override
+- FastAPI framework with automatic OpenAPI documentation
+- RESTful endpoints with JSON responses
+- Built-in request validation and error handling
+- CORS middleware support
 
-## 💡 Cost Optimization Strategy
+### Data Flow
 
-### Traditional S3 Querying Costs
+- S3DataManager: Discover and access S3 data
+- LocalDataManager: Local cache management
+- DataDownloader: S3 to local data transfer
+- DuckDBEngine: SQL execution on S3 or local data
+- FinOpsEngine: Unified interface for all functionality
 
-```
-Monthly S3 Costs (Example):
-• GET Requests: 1M requests × $0.0004 = $400
-• Data Transfer: 100GB × $0.09 = $9,000
-• Total Monthly: ~$9,400
-```
+### Authentication
 
-### With Local Data Caching
+- AWS credential management (IAM roles, access keys, profiles)
+- Configurable authentication per request
+- Support for cross-account data access
 
-```
-One-time Setup:
-• Initial Download: 100GB × $0.09 = $9 (one-time)
-• Monthly S3 Costs: ~$9 (refresh only)
-• Monthly Savings: $9,391 (99.9% reduction)
-```
+## Local Data Caching
 
-### ROI Calculation
+### Benefits
 
-- **Setup Cost**: Minimal (leverages existing infrastructure)
-- **Monthly Savings**: $9,000+ (typical enterprise deployment)
-- **Annual Savings**: $100,000+ (excluding optimization recommendations)
-- **Payback Period**: < 1 month
+- Initial download: One-time S3 data transfer cost
+- Subsequent queries: Zero S3 API calls
+- Data refresh: Only incremental updates require S3 access
+- Performance: Local queries faster than S3 queries
 
-## 🎯 Success Metrics
+### Implementation
 
-### Business KPIs
+- Preserves S3 directory structure locally
+- Configurable local data path
+- Automatic preference for local data when available
+- Manual and scheduled refresh capabilities
+- Data validation and integrity checks
 
-- **Cost Savings**: 10%+ of total AWS spend through recommendations
-- **User Adoption**: 80%+ of finance/engineering teams
-- **ROI**: 5x return on platform investment
-- **Time to Insight**: <30 seconds for dashboard queries
+## Testing and Validation
 
-### Technical KPIs
+### Test Suite (14 Tests)
 
-- **Availability**: 99.9% uptime
-- **Performance**: 95th percentile <2 seconds
-- **Data Freshness**: <4 hour staleness
-- **Cache Efficiency**: >80% hit ratio
+- `test_1_query_s3.py` - S3 data querying
+- `test_2_download_local.py` - Local data download
+- `test_3_query_local.py` - Local data querying
+- `test_4_fastapi_endpoints.py` - API server functionality
+- `test_5_data_partitioner.py` - SQL file execution and parquet saving
+- `test_6_mcp_server.py` - MCP integration
+- `test_7_optimization.py` - Optimization analytics
+- `test_8_ai_recommendations.py` - AI recommendations
+- `test_9_data_export.py` - Data export functionality
+- `test_10_fastapi_endpoints.py` - FastAPI endpoints
+- `test_11_utilities.py` - Utility functions
+- `test_12_kpi_comprehensive.py` - KPI dashboard
+- `test_13_kpi_api_endpoint.py` - KPI API endpoints
+- `test_14_sql_query_endpoint.py` - SQL API endpoints
 
-## 🛣️ Implementation Roadmap
+### Implementation Status
 
-### Phase 1: MVP (8 weeks)
+- Core engine: FinOpsEngine with unified query interface
+- Analytics modules: All 7 modules implemented (KPI, Spend, Optimization, Allocation, Discounts, AI, MCP)
+- API endpoints: Complete FastAPI implementation with 8 endpoint categories
+- Data management: S3, local, and AWS Pricing API integration
+- Authentication: AWS credential management and validation
+- Utilities: Formatters, validators, performance monitoring, export tools
 
-- ✅ **Local data caching implementation** (DE-Polars)
-- ✅ **Core spend analytics** (View 1)
-- ✅ **Basic optimization insights** (View 2)
-- ✅ **REST API foundation** with authentication
+## Technology Stack
 
-### Phase 2: Enhanced Analytics (12 weeks)
-
-- 🔄 **Cost allocation and tagging** (View 3)
-- 🔄 **Discount tracking** (View 4)
-- 🔄 **Advanced caching and performance optimization**
-- 🔄 **Mobile-responsive dashboard**
-
-### Phase 3: AI & Integration (16 weeks)
-
-- 📋 **MCP server integration** (View 5)
-- 📋 **AI recommendations** (View 6)
-- 📋 **Advanced analytics and forecasting**
-- 📋 **Enterprise features and integrations**
-
-### Phase 4: Advanced Features (20 weeks)
-
-- 📋 **Machine learning enhancements**
-- 📋 **Real-time streaming capabilities**
-- 📋 **Advanced security and compliance**
-- 📋 **Third-party marketplace integrations**
-
-## 🔧 Technology Stack
-
-### Backend
+### Core Components
 
 - **DE-Polars**: Data processing and S3 caching
 - **DuckDB**: SQL analytics engine
-- **FastAPI/Flask**: REST API framework
-- **PostgreSQL**: Configuration and results storage
-- **Redis**: API response caching
+- **Polars**: DataFrame processing
+- **FastAPI**: REST API framework
+- **Boto3**: AWS service integration
 
-### Frontend
+### Data Sources
 
-- **React/Vue.js**: Web dashboard
-- **Chart.js/D3.js**: Data visualization
-- **Progressive Web App**: Mobile support
-- **WebSocket**: Real-time updates
+- **AWS Data Exports**: CUR 2.0, FOCUS 1.0, COH, Carbon Emissions
+- **AWS Pricing API**: Real-time pricing data
+- **AWS SavingsPlans API**: Savings plan information
+- **Local Parquet Files**: Cached data storage
 
-### Infrastructure
+### AWS Services
 
-- **Docker**: Containerization
-- **Kubernetes**: Orchestration and scaling
-- **AWS/Cloud**: Deployment platform
-- **CI/CD**: Automated testing and deployment
+- **S3**: Primary data storage
+- **IAM**: Authentication and authorization
+- **Cost Explorer**: (future integration)
+- **CloudFormation**: (future deployment)
 
-## 🔒 Security & Compliance
+## Configuration and Setup
 
-### Authentication & Authorization
+### Data Configuration
 
-- **OAuth 2.0/JWT** token-based authentication
-- **Role-based access control** (RBAC)
-- **API key management** for service integrations
-- **Audit logging** for all cost data access
+- S3 bucket and prefix specification
+- Data export type selection (CUR 2.0, FOCUS 1.0, COH, Carbon Emissions)
+- Local data path configuration
+- Date range filtering (start/end dates)
+- AWS credential management (IAM roles, access keys, profiles)
 
-### Data Protection
+### Engine Configuration
 
-- **Encryption at rest** for local cached data
-- **Encryption in transit** for all API communications
-- **Data retention policies** aligned with compliance requirements
-- **GDPR/SOC2** compliance support
+- Table name customization
+- Performance optimization settings
+- Cache preferences (local vs S3)
+- API data source enablement (Pricing API, SavingsPlans API)
 
-## 🎉 Competitive Advantages
+## Data Structures
 
-1. **Cost Efficiency**: 90%+ reduction in AWS data costs
-2. **Performance**: Sub-second response times vs. cloud-only solutions
-3. **Intelligence**: AI-powered insights and automation
-4. **Flexibility**: Support for all AWS Data Export formats
-5. **Integration**: MCP protocol for AI assistant compatibility
-6. **Scalability**: Handles enterprise-scale data volumes
+### Query Response Format
 
-## 📞 Next Steps
+```json
+{
+  "data": [...],           // Polars DataFrame as JSON
+  "row_count": 1000,
+  "execution_time_ms": 150,
+  "query_metadata": {
+    "data_source": "local|s3",
+    "query_timestamp": "ISO-8601",
+    "cached": true|false
+  }
+}
+```
 
-1. **Review and approve** product requirements
-2. **Set up development environment** with DE-Polars
-3. **Begin Phase 1 implementation** (MVP features)
-4. **Establish CI/CD pipeline** and testing framework
-5. **Plan stakeholder demos** and feedback cycles
+### KPI Summary Structure
 
----
+- Spend summary (total, trends, forecasts)
+- EC2 metrics (instances, utilization, costs)
+- RDS metrics (databases, performance, costs)
+- Storage metrics (EBS, S3, snapshots)
+- Compute services breakdown
+- Savings opportunities identification
 
-**Ready to build the next-generation AWS FinOps platform with 90%+ cost savings built-in! 🚀**
+### Error Response Format
+
+```json
+{
+  "error": "ERROR_CODE",
+  "message": "Human readable error",
+  "details": {...},
+  "query_metadata": {...}
+}
+```
+
+## Frontend Integration Points
+
+### Dashboard Components
+
+- KPI summary cards
+- Spend trend charts
+- Service breakdown tables
+- Optimization recommendations list
+- Cost allocation views
+- Discount utilization charts
+
+### Interactive Features
+
+- Date range selectors
+- Account/service filters
+- Custom SQL query interface
+- Export functionality (CSV, JSON, Parquet)
+- Real-time data refresh
+
+### API Integration
+
+- REST endpoints for all data retrieval
+- Pagination for large datasets
+- Query parameter validation
+- Error handling and user feedback
+- Progress indicators for long-running queries

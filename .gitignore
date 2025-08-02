@@ -7,12 +7,13 @@ s3_data_prefix='cur2/014498620306/cid-cur2/data',
 cur2_analytics/
 cache/
 
-tests/
+# tests/
 test_local_data/
 test_partitioner_output/
 test_views_output/
 test_exports/
-
+# PRODUCT_SUMMARY.md
+# FRONTEND_REQUIREMENTS.md
 
 __pycache__/
 *.py[cod]
