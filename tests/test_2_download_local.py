@@ -24,14 +24,14 @@ def test_download_local():
     local_path = "./test_local_data"
     config = DataConfig(
         s3_bucket='billing-data-exports-cur',          
-        s3_data_prefix='cur2/cur2/data',          
-        data_export_type=DataExportType.CUR_2_0,     
+        s3_data_prefix='cur2/cur2/data',            
+        data_export_type=DataExportType.CUR_2_0,   
 
         # s3_bucket='billing-data-exports-focus',          
         # s3_data_prefix='focus1/focus1/data',       
         # data_export_type=DataExportType.FOCUS_1_0,     
         table_name='CUR',                        
-        date_start='2025-01',                    
+        date_start='2024-06',                    
         date_end='2025-07',
         local_data_path=local_path,
         prefer_local_data=True

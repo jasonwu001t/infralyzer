@@ -16,6 +16,7 @@
 - **⚡ Real-time Analytics**: Comprehensive KPI dashboards and cost optimization recommendations
 - **🔄 Backward Compatible**: Existing DataExportsPolars code continues to work unchanged
 - **🔧 Rich Utilities**: Built-in formatters, validators, performance monitoring, and export tools
+- **💰 API Data Sources**: Direct AWS Pricing API and SavingsPlans API integration for real-time pricing lookup
 
 ## 🏗️ Architecture Design
 
@@ -41,6 +42,8 @@ graph TB
         S3DM[S3DataManager<br/>📡 Discover & Access]
         LDM[LocalDataManager<br/>💿 Cache Management]
         DD[DataDownloader<br/>⬇️ S3 to Local]
+        PAM[PricingApiManager<br/>💰 AWS Pricing API]
+        SPAM[SavingsPlansApiManager<br/>💳 Savings Plans API]
     end
 
     %% Core Engine Layer
@@ -99,8 +102,12 @@ graph TB
     FOCUS --> S3DM
 
     DC --> DUCK
+    DC --> PAM
+    DC --> SPAM
     DET --> DC
     AUTH --> DUCK
+    AUTH --> PAM
+    AUTH --> SPAM
 
     S3DM --> DD
     DD --> LDM
@@ -108,6 +115,8 @@ graph TB
     S3DM --> DUCK
     LOCAL --> LDM
     LDM --> DUCK
+    PAM --> DUCK
+    SPAM --> DUCK
 
     DUCK --> FINOPS
     DUCK --> DEP
@@ -161,31 +170,34 @@ graph TB
 
 ### Architecture Layers
 
-| Layer                  | Components                                            | Purpose                                                      |
-| ---------------------- | ----------------------------------------------------- | ------------------------------------------------------------ |
-| **🔧 Configuration**   | `DataConfig`, `DataExportType`                        | Central configuration management for AWS data sources        |
-| **💾 Data Management** | `S3DataManager`, `LocalDataManager`, `DataDownloader` | Handle S3 discovery, local caching, and data synchronization |
-| **🧠 Core Engine**     | `DuckDBEngine`, `Authentication`                      | SQL execution engine with AWS credential management          |
-| **🎯 Interface**       | `FinOpsEngine`, `DataExportsPolars`                   | Unified access point and backward compatibility              |
-| **📊 Analytics**       | 7 specialized modules                                 | Domain-specific cost analytics and optimization              |
-| **🌐 API**             | `FastAPI` + 8 endpoint routers                        | Production-ready REST API with OpenAPI docs and SQL queries  |
-| **🛠️ Utilities**       | Formatters, Validators, Performance, Export           | Shared utilities for data processing and presentation        |
+| Layer                  | Components                                                                                           | Purpose                                                                            |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **🔧 Configuration**   | `DataConfig`, `DataExportType`                                                                       | Central configuration management for AWS data sources                              |
+| **💾 Data Management** | `S3DataManager`, `LocalDataManager`, `DataDownloader`, `PricingApiManager`, `SavingsPlansApiManager` | Handle S3 discovery, local caching, data synchronization, and AWS API pricing data |
+| **🧠 Core Engine**     | `DuckDBEngine`, `Authentication`                                                                     | SQL execution engine with AWS credential management                                |
+| **🎯 Interface**       | `FinOpsEngine`, `DataExportsPolars`                                                                  | Unified access point and backward compatibility                                    |
+| **📊 Analytics**       | 7 specialized modules                                                                                | Domain-specific cost analytics and optimization                                    |
+| **🌐 API**             | `FastAPI` + 8 endpoint routers                                                                       | Production-ready REST API with OpenAPI docs and SQL queries                        |
+| **🛠️ Utilities**       | Formatters, Validators, Performance, Export                                                          | Shared utilities for data processing and presentation                              |
 
 ### Data Flow
 
 1. **📡 Discovery**: `S3DataManager` discovers CUR/FOCUS data in AWS S3
 2. **⬇️ Download**: `DataDownloader` caches data locally via `LocalDataManager`
-3. **🦆 Query**: `DuckDBEngine` executes SQL on S3 or local cache
-4. **📊 Analytics**: Specialized modules perform domain-specific analysis
-5. **🚀 Interface**: `FinOpsEngine` provides unified access to all analytics
-6. **🌐 API**: FastAPI exposes REST endpoints for analytics modules and custom SQL queries
+3. **💰 API Data**: `PricingApiManager` and `SavingsPlansApiManager` fetch real-time pricing
+4. **🦆 Query**: `DuckDBEngine` executes SQL on S3, local cache, and API data
+5. **📊 Analytics**: Specialized modules perform domain-specific analysis
+6. **🚀 Interface**: `FinOpsEngine` provides unified access to all analytics
+7. **🌐 API**: FastAPI exposes REST endpoints for analytics modules and custom SQL queries
 
 ### Directory Structure
 
 ```
 de_polars/
 ├── engine/           # Core DuckDB SQL execution engine
-├── data/             # S3 and local data management
+├── data/             # S3, local, and API data management
+│   ├── pricing_api_manager.py     # AWS Pricing API integration
+│   ├── savings_plan_api_manager.py # AWS SavingsPlans API integration
 ├── analytics/        # Modular cost analytics components
 │   ├── kpi_summary.py         # ⭐ Comprehensive KPI dashboard
 │   ├── spend_analytics.py     # Spend visibility & trends
@@ -237,7 +249,11 @@ config = DataConfig(
     data_export_type=DataExportType.CUR_2_0,
     table_name='CUR',
     local_data_path='./local_data',  # Enable cost-saving local cache
-    prefer_local_data=True
+    prefer_local_data=True,
+
+    # Optional: Enable real-time pricing data
+    enable_pricing_api=True,         # AWS Pricing API integration
+    enable_savings_plans_api=True    # SavingsPlans API integration
 )
 
 # Initialize FinOps engine
@@ -279,6 +295,205 @@ FROM CUR
     ORDER BY 2 DESC
 LIMIT 10
 """)
+```
+
+## 💰 AWS Pricing API Integration
+
+DE-Polars now includes direct integration with AWS Pricing API and SavingsPlans API for real-time pricing lookups, enabling cost analysis without complex SQL queries.
+
+### Simple Price Lookup Functions
+
+Get on-demand and savings plan prices using simple function calls based on instance attributes:
+
+```python
+from de_polars.data.pricing_api_manager import PricingApiManager
+from de_polars.data.savings_plan_api_manager import SavingsPlansApiManager
+
+# Initialize managers
+config = DataConfig(
+    s3_bucket='dummy-bucket',  # Not needed for API calls
+    s3_data_prefix='dummy-prefix',
+    data_export_type=DataExportType.CUR_2_0,
+    aws_region='us-east-1',
+    local_data_path='./cache'  # For caching API results
+)
+
+pricing_manager = PricingApiManager(config)
+sp_manager = SavingsPlansApiManager(config)
+
+# Get on-demand price
+price = pricing_manager.get_simple_price(
+    region_code='us-east-1',
+    instance_type='m5.large',
+    operating_system='Linux',
+    tenancy='Shared'
+)
+print(f"On-Demand: ${price:.4f}/hour")
+
+# Get savings plan rate
+sp_rate = sp_manager.get_simple_savings_plan_rate(
+    instance_type='m5.large',
+    region='us-east-1'
+)
+print(f"Savings Plan: ${sp_rate:.4f}/hour")
+
+# Compare pricing
+comparison = sp_manager.compare_savings_vs_ondemand(
+    region='us-east-1',
+    instance_type='m5.large',
+    on_demand_price=price
+)
+print(f"Savings: {comparison['savings_percentage']:.1f}%")
+print(f"Monthly Savings: ${comparison['monthly_savings']:.2f}")
+```
+
+### Automated Table Integration
+
+When enabled, pricing data is automatically available as SQL tables for joining with CUR2.0 data:
+
+```python
+config = DataConfig(
+    # ... your existing configuration ...
+
+    # Enable API data sources
+    enable_pricing_api=True,
+    enable_savings_plans_api=True,
+
+    # Configure data collection
+    pricing_api_regions=['us-east-1', 'eu-west-1'],
+    pricing_api_instance_types=['t3.micro', 'm5.large', 'c5.xlarge'],
+    api_cache_max_age_days=1
+)
+
+engine = FinOpsEngine(config)
+
+# API data automatically registered as tables
+result = engine.query("""
+    SELECT
+        c.product_instance_type,
+        c.product_region,
+        SUM(c.line_item_unblended_cost) as actual_cost,
+        AVG(p.price_per_hour_usd) as current_on_demand_rate,
+        SUM(c.line_item_usage_amount) as usage_hours,
+        CASE
+            WHEN SUM(c.line_item_usage_amount * p.price_per_hour_usd) > 0
+            THEN (1 - SUM(c.line_item_unblended_cost) / SUM(c.line_item_usage_amount * p.price_per_hour_usd)) * 100
+            ELSE 0
+        END as savings_percentage
+    FROM CUR c
+    LEFT JOIN aws_pricing p ON (
+        c.product_instance_type = p.instance_type
+        AND c.product_region = p.region_code
+        AND c.product_operating_system = p.operating_system
+    )
+    WHERE c.line_item_product_code = 'AmazonEC2'
+    GROUP BY c.product_instance_type, c.product_region
+    ORDER BY savings_percentage DESC
+""")
+```
+
+### Available API Tables
+
+When API data sources are enabled, these tables are automatically available:
+
+| Table Name                | Description           | Key Join Columns                                   |
+| ------------------------- | --------------------- | -------------------------------------------------- |
+| `aws_pricing`             | EC2 on-demand pricing | `instance_type`, `region_code`, `operating_system` |
+| `aws_rds_pricing`         | RDS instance pricing  | `instance_class`, `region_code`, `database_engine` |
+| `aws_savings_plans`       | Active savings plans  | `savings_plan_arn`                                 |
+| `aws_savings_plans_rates` | Detailed SP rates     | `instance_type`, `region`, `savings_plan_id`       |
+
+### Configuration Options
+
+```python
+config = DataConfig(
+    # ... existing config ...
+
+    # API Data Source Control
+    enable_pricing_api=True,              # Enable AWS Pricing API
+    enable_savings_plans_api=True,        # Enable SavingsPlans API
+    api_cache_max_age_days=1,             # Cache refresh frequency
+
+    # Pricing API Filters
+    pricing_api_regions=['us-east-1', 'eu-west-1'],
+    pricing_api_instance_types=['t3.micro', 'm5.large'],
+
+    # Savings Plans Settings
+    savings_plans_include_rates=True      # Include detailed rate data
+)
+```
+
+### Common Use Cases
+
+#### 1. Cost Efficiency Analysis
+
+```python
+# Compare actual costs vs theoretical on-demand costs
+efficiency_query = """
+SELECT
+    product_instance_type,
+    SUM(line_item_unblended_cost) as actual_cost,
+    SUM(line_item_usage_amount * aws_pricing.price_per_hour_usd) as theoretical_cost,
+    (1 - SUM(line_item_unblended_cost) / SUM(line_item_usage_amount * aws_pricing.price_per_hour_usd)) * 100 as efficiency_pct
+FROM CUR
+LEFT JOIN aws_pricing ON CUR.product_instance_type = aws_pricing.instance_type
+WHERE line_item_product_code = 'AmazonEC2'
+GROUP BY product_instance_type
+ORDER BY efficiency_pct DESC
+"""
+```
+
+#### 2. Savings Plans Coverage
+
+```python
+# Analyze savings plan coverage and utilization
+coverage_query = """
+SELECT
+    bill_billing_period_start_date,
+    SUM(line_item_unblended_cost) as total_cost,
+    SUM(CASE WHEN savings_plan_savings_plan_a_r_n IS NOT NULL
+             THEN line_item_unblended_cost ELSE 0 END) as sp_covered_cost,
+    (SUM(CASE WHEN savings_plan_savings_plan_a_r_n IS NOT NULL
+              THEN line_item_unblended_cost ELSE 0 END) / SUM(line_item_unblended_cost)) * 100 as coverage_pct
+FROM CUR c
+LEFT JOIN aws_savings_plans sp ON c.savings_plan_savings_plan_a_r_n = sp.savings_plan_arn
+WHERE line_item_product_code = 'AmazonEC2'
+GROUP BY bill_billing_period_start_date
+ORDER BY coverage_pct DESC
+"""
+```
+
+#### 3. Instance Comparison
+
+```python
+# Compare pricing across multiple instance types
+instances = ['t3.micro', 't3.small', 'm5.large', 'c5.xlarge']
+comparison_df = pricing_manager.compare_instance_pricing(
+    region_code='us-east-1',
+    instance_types=instances
+)
+print(comparison_df)
+```
+
+### Performance & Caching
+
+- **Automatic Caching**: API responses are cached locally for 24 hours by default
+- **Incremental Updates**: Only fetch new data when cache expires
+- **Configurable Refresh**: Adjust `api_cache_max_age_days` for your needs
+- **Background Loading**: API data loads automatically during query execution
+
+### Testing
+
+Run the API data handlers test to verify functionality:
+
+```bash
+python tests/test_15_api_data_handlers.py
+```
+
+See example usage:
+
+```bash
+python simple_price_example.py
 ```
 
 ## 🌐 FastAPI Deployment
@@ -410,6 +625,7 @@ GET  /api/v1/finops/sql/tables     # List available tables
 ```
 
 **Key Features:**
+
 - Custom SELECT queries on AWS cost data
 - Support for complex JOINs, CTEs, and window functions
 - JSON and CSV output formats
@@ -417,6 +633,7 @@ GET  /api/v1/finops/sql/tables     # List available tables
 - Access to main data table and pre-built cost optimization views
 
 **Example Query Request:**
+
 ```json
 {
   "sql": "SELECT product_servicecode, SUM(line_item_unblended_cost) as total_cost FROM CUR WHERE line_item_unblended_cost > 0 GROUP BY product_servicecode ORDER BY total_cost DESC LIMIT 5",
@@ -735,7 +952,7 @@ MIT License - see LICENSE file for details.
 
 - **Documentation**: Check the `/docs` endpoint when running the API
 - **Issues**: GitHub Issues
-- **Examples**: See `example_new_modular_usage.py`
+- **Examples**: See `example_new_modular_usage.py` and `simple_price_example.py`
 
 ---
 

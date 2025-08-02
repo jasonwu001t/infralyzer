@@ -1,4 +1,9 @@
 # Byte-compiled / optimized / DLL files
+
+# s3 path
+s3_bucket= 'cid-014498620306-data-local'
+s3_data_prefix='cur2/014498620306/cid-cur2/data'
+
 __pycache__/
 *.py[cod]
 *$py.class

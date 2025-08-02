@@ -2,7 +2,7 @@
 Data configuration and export type definitions
 """
 from enum import Enum
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
 
 
@@ -48,6 +48,14 @@ class DataConfig:
     # Local data configuration
     local_data_path: Optional[str] = None
     prefer_local_data: bool = True
+    
+    # API Data Configuration
+    enable_pricing_api: bool = False
+    enable_savings_plans_api: bool = False
+    api_cache_max_age_days: int = 1
+    pricing_api_regions: Optional[List[str]] = None
+    pricing_api_instance_types: Optional[List[str]] = None
+    savings_plans_include_rates: bool = True
     
     # AWS Authentication
     aws_region: Optional[str] = None
