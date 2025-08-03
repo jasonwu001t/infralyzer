@@ -1,11 +1,14 @@
 """
 AWS Pricing Manager - Unified handler for all AWS pricing models
 Covers: On-Demand, Reserved Instances, Spot Instances, and Savings Plans
+Includes instance metadata and bulk pricing operations for frontend applications
 """
 import json
 from typing import List, Dict, Any, Optional, Literal
 from datetime import datetime, timedelta
 import polars as pl
+import concurrent.futures
+import threading
 
 from ..engine.data_config import DataConfig
 from ..auth import get_boto3_client
@@ -19,6 +22,8 @@ class AWSPricingManager:
         self.config = config
         # AWS Pricing API is only available in us-east-1
         self._pricing_region = 'us-east-1'
+        self._instance_metadata_cache = {}
+        self._cache_lock = threading.Lock()
         
     def _get_boto3_client(self, service_name: str):
         """Get boto3 client using the configuration credentials"""
@@ -54,6 +59,218 @@ class AWSPricingManager:
             'af-south-1': 'Africa (Cape Town)'
         }
         return region_mappings.get(region_code, region_code)
+    
+    # =============================================================================
+    # INSTANCE METADATA
+    # =============================================================================
+    
+    def get_instance_metadata(self, instance_type: str) -> Optional[Dict[str, Any]]:
+        """
+        Get instance metadata (vCPUs, memory, storage, network).
+        Uses pricing API to get comprehensive instance details.
+        
+        Args:
+            instance_type: EC2 instance type (e.g., 't3.micro')
+        
+        Returns:
+            Dictionary with instance specifications or None if not found
+        """
+        # Check cache first
+        with self._cache_lock:
+            if instance_type in self._instance_metadata_cache:
+                return self._instance_metadata_cache[instance_type]
+        
+        try:
+            pricing_client = self._get_boto3_client('pricing')
+            
+            # Use a common region to get metadata
+            filters = [
+                {'Type': 'TERM_MATCH', 'Field': 'instanceType', 'Value': instance_type},
+                {'Type': 'TERM_MATCH', 'Field': 'operatingSystem', 'Value': 'Linux'},
+                {'Type': 'TERM_MATCH', 'Field': 'tenancy', 'Value': 'Shared'},
+                {'Type': 'TERM_MATCH', 'Field': 'location', 'Value': 'US East (N. Virginia)'}
+            ]
+            
+            response = pricing_client.get_products(ServiceCode='AmazonEC2', Filters=filters, MaxResults=1)
+            
+            if response['PriceList']:
+                product_data = json.loads(response['PriceList'][0])
+                attributes = product_data.get('product', {}).get('attributes', {})
+                
+                metadata = {
+                    'instance_type': instance_type,
+                    'vcpu': attributes.get('vcpu', 'Unknown'),
+                    'memory': attributes.get('memory', 'Unknown'),
+                    'storage': attributes.get('storage', 'EBS only'),
+                    'network_performance': attributes.get('networkPerformance', 'Unknown'),
+                    'instance_family': attributes.get('instanceFamily', 'Unknown'),
+                    'processor_features': attributes.get('processorFeatures', 'Unknown'),
+                    'physical_processor': attributes.get('physicalProcessor', 'Unknown'),
+                    'clock_speed': attributes.get('clockSpeed', 'Unknown'),
+                    'enhanced_networking': attributes.get('enhancedNetworkingSupported', 'Unknown'),
+                    'instance_sku': attributes.get('sku', 'Unknown')
+                }
+                
+                # Cache the result
+                with self._cache_lock:
+                    self._instance_metadata_cache[instance_type] = metadata
+                
+                return metadata
+            
+            return None
+            
+        except Exception as e:
+            print(f"❌ Error getting instance metadata for {instance_type}: {e}")
+            return None
+    
+    def get_popular_instance_types(self) -> List[str]:
+        """
+        Get a list of popular/common EC2 instance types.
+        
+        Returns:
+            List of instance type strings
+        """
+        return [
+            # General Purpose
+            't3.nano', 't3.micro', 't3.small', 't3.medium', 't3.large', 't3.xlarge', 't3.2xlarge',
+            't3a.nano', 't3a.micro', 't3a.small', 't3a.medium', 't3a.large', 't3a.xlarge', 't3a.2xlarge',
+            'm5.large', 'm5.xlarge', 'm5.2xlarge', 'm5.4xlarge', 'm5.8xlarge', 'm5.12xlarge', 'm5.16xlarge', 'm5.24xlarge',
+            'm5a.large', 'm5a.xlarge', 'm5a.2xlarge', 'm5a.4xlarge', 'm5a.8xlarge', 'm5a.12xlarge', 'm5a.16xlarge', 'm5a.24xlarge',
+            'm6i.large', 'm6i.xlarge', 'm6i.2xlarge', 'm6i.4xlarge', 'm6i.8xlarge', 'm6i.12xlarge', 'm6i.16xlarge', 'm6i.24xlarge', 'm6i.32xlarge',
+            
+            # Compute Optimized
+            'c5.large', 'c5.xlarge', 'c5.2xlarge', 'c5.4xlarge', 'c5.9xlarge', 'c5.12xlarge', 'c5.18xlarge', 'c5.24xlarge',
+            'c5n.large', 'c5n.xlarge', 'c5n.2xlarge', 'c5n.4xlarge', 'c5n.9xlarge', 'c5n.18xlarge',
+            'c6i.large', 'c6i.xlarge', 'c6i.2xlarge', 'c6i.4xlarge', 'c6i.8xlarge', 'c6i.12xlarge', 'c6i.16xlarge', 'c6i.24xlarge', 'c6i.32xlarge',
+            
+            # Memory Optimized
+            'r5.large', 'r5.xlarge', 'r5.2xlarge', 'r5.4xlarge', 'r5.8xlarge', 'r5.12xlarge', 'r5.16xlarge', 'r5.24xlarge',
+            'r5a.large', 'r5a.xlarge', 'r5a.2xlarge', 'r5a.4xlarge', 'r5a.8xlarge', 'r5a.12xlarge', 'r5a.16xlarge', 'r5a.24xlarge',
+            'r6i.large', 'r6i.xlarge', 'r6i.2xlarge', 'r6i.4xlarge', 'r6i.8xlarge', 'r6i.12xlarge', 'r6i.16xlarge', 'r6i.24xlarge', 'r6i.32xlarge',
+            
+            # Storage Optimized
+            'i3.large', 'i3.xlarge', 'i3.2xlarge', 'i3.4xlarge', 'i3.8xlarge', 'i3.16xlarge',
+            'i4i.large', 'i4i.xlarge', 'i4i.2xlarge', 'i4i.4xlarge', 'i4i.8xlarge', 'i4i.16xlarge', 'i4i.32xlarge',
+            
+            # GPU Instances
+            'p3.2xlarge', 'p3.8xlarge', 'p3.16xlarge',
+            'g4dn.xlarge', 'g4dn.2xlarge', 'g4dn.4xlarge', 'g4dn.8xlarge', 'g4dn.12xlarge', 'g4dn.16xlarge'
+        ]
+    
+    # =============================================================================
+    # BULK OPERATIONS
+    # =============================================================================
+    
+    def get_bulk_pricing_comparison(self, instance_types: List[str], region: str = 'us-east-1',
+                                   operating_system: str = 'Linux', max_workers: int = 10) -> List[Dict[str, Any]]:
+        """
+        Get pricing comparison for multiple instances in parallel.
+        
+        Args:
+            instance_types: List of EC2 instance types
+            region: AWS region code
+            operating_system: Operating system
+            max_workers: Maximum number of concurrent workers
+        
+        Returns:
+            List of pricing comparison dictionaries
+        """
+        print(f"🔍 Getting bulk pricing for {len(instance_types)} instances in {region}...")
+        
+        def get_instance_pricing(instance_type: str) -> Dict[str, Any]:
+            try:
+                # Get metadata
+                metadata = self.get_instance_metadata(instance_type)
+                
+                # Get pricing comparison
+                pricing = self.compare_all_pricing_options(region, instance_type, operating_system)
+                
+                # Combine metadata and pricing
+                result = {
+                    'instance_type': instance_type,
+                    'metadata': metadata,
+                    'pricing': pricing,
+                    'status': 'success'
+                }
+                
+                return result
+                
+            except Exception as e:
+                return {
+                    'instance_type': instance_type,
+                    'metadata': None,
+                    'pricing': None,
+                    'status': 'error',
+                    'error': str(e)
+                }
+        
+        # Use ThreadPoolExecutor for parallel processing
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_instance = {
+                executor.submit(get_instance_pricing, instance_type): instance_type 
+                for instance_type in instance_types
+            }
+            
+            for future in concurrent.futures.as_completed(future_to_instance):
+                result = future.result()
+                results.append(result)
+        
+        # Sort results by instance type for consistent ordering
+        results.sort(key=lambda x: x['instance_type'])
+        
+        return results
+    
+    def get_pricing_matrix(self, instance_types: Optional[List[str]] = None, 
+                          regions: Optional[List[str]] = None) -> pl.DataFrame:
+        """
+        Generate a pricing matrix for multiple instances across regions.
+        
+        Args:
+            instance_types: List of instance types (uses popular ones if None)
+            regions: List of regions (uses common ones if None)
+        
+        Returns:
+            DataFrame with pricing matrix
+        """
+        if not instance_types:
+            instance_types = self.get_popular_instance_types()[:20]  # Limit for performance
+        
+        if not regions:
+            regions = ['us-east-1', 'us-west-2', 'eu-west-1', 'ap-southeast-1']
+        
+        print(f"🔍 Building pricing matrix for {len(instance_types)} instances across {len(regions)} regions...")
+        
+        matrix_data = []
+        
+        for region in regions:
+            bulk_pricing = self.get_bulk_pricing_comparison(instance_types, region)
+            
+            for item in bulk_pricing:
+                if item['status'] == 'success' and item['pricing']:
+                    pricing = item['pricing']
+                    metadata = item['metadata'] or {}
+                    
+                    row = {
+                        'region': region,
+                        'instance_type': item['instance_type'],
+                        'vcpu': metadata.get('vcpu', 'Unknown'),
+                        'memory': metadata.get('memory', 'Unknown'),
+                        'storage': metadata.get('storage', 'EBS only'),
+                        'network_performance': metadata.get('network_performance', 'Unknown'),
+                        'ondemand_hourly': pricing.get('ondemand', {}).get('hourly_price'),
+                        'ondemand_monthly': pricing.get('ondemand', {}).get('monthly_price'),
+                        'spot_hourly': pricing.get('spot', {}).get('hourly_price'),
+                        'spot_savings_pct': pricing.get('spot', {}).get('savings_vs_ondemand_pct'),
+                        'reserved_1yr_hourly': pricing.get('reserved_1yr', {}).get('hourly_price'),
+                        'reserved_1yr_savings_pct': pricing.get('reserved_1yr', {}).get('savings_vs_ondemand_pct'),
+                        'savings_plan_hourly': pricing.get('savings_plan', {}).get('hourly_price'),
+                        'savings_plan_savings_pct': pricing.get('savings_plan', {}).get('savings_vs_ondemand_pct'),
+                        'timestamp': datetime.now().isoformat()
+                    }
+                    matrix_data.append(row)
+        
+        return pl.DataFrame(matrix_data)
     
     # =============================================================================
     # ON-DEMAND PRICING
