@@ -69,7 +69,7 @@ graph TB
     %% === UNIFIED INTERFACE ===
     subgraph Interface ["🎯 Unified Interface"]
         FINOPS[FinOpsEngine<br/>🚀 Main Interface]
-        METHODS[query() / query_json() / query_csv()<br/>📝 Unified Query Methods]
+        METHODS["query / query_json / query_csv<br/>📝 Unified Query Methods"]
     end
 
     %% === ANALYTICS MODULES ===
@@ -467,18 +467,18 @@ rightsizing = engine.query("cur2_analytics/rightsizing_analysis.sql")
 ```python
 # Cost by account
 account_costs = engine.query("""
-    SELECT
+SELECT
         line_item_usage_account_id,
         SUM(line_item_unblended_cost) as account_cost,
         COUNT(DISTINCT product_servicecode) as service_count
-    FROM CUR
+FROM CUR
     GROUP BY 1
     ORDER BY 2 DESC
 """)
 
 # Tag-based allocation
 tag_allocation = engine.query("""
-    SELECT
+SELECT
         resource_tags_user_environment as environment,
         resource_tags_user_team as team,
         SUM(line_item_unblended_cost) as allocated_cost
@@ -524,13 +524,13 @@ class CustomCostAnalytics:
         """Get monthly trends for top services"""
         sql = f"""
         WITH monthly_costs AS (
-            SELECT
-                DATE_TRUNC('month', line_item_usage_start_date) as month,
+        SELECT
+            DATE_TRUNC('month', line_item_usage_start_date) as month,
                 product_servicecode,
-                SUM(line_item_unblended_cost) as monthly_cost
+            SUM(line_item_unblended_cost) as monthly_cost
             FROM CUR
             WHERE line_item_usage_start_date >= CURRENT_DATE - INTERVAL '{months} months'
-            GROUP BY 1, 2
+        GROUP BY 1, 2
         ),
         top_services AS (
             SELECT product_servicecode
