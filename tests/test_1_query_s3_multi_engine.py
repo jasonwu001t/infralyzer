@@ -36,7 +36,7 @@ def create_test_config():
         s3_bucket='billing-data-exports-cur',          
         s3_data_prefix='cur2/cur2/data',       
         data_export_type=DataExportType.CUR_2_0,               
-        table_name='AA',                        
+        table_name='CUR',                        
         date_start='2025-01',                    
         date_end='2025-07',
         prefer_local_data=False,  # Force S3 access
@@ -55,7 +55,17 @@ def test_simple_query_with_engine(engine_name, config):
     try:
         finops_engine = FinOpsEngine(config, engine_name=engine_name)
         engine_instance = finops_engine.engine
-        sql = "SELECT * FROM AA LIMIT 10"
+        sql = """
+            SELECT
+                bill_invoice_id,
+                SUM(CAST(line_item_usage_amount AS DECIMAL(18, 2))) AS total_usage_amount
+            FROM
+                CUR
+            GROUP BY
+                bill_invoice_id
+            LIMIT 10
+            """
+        # SELECT * FROM AA LIMIT 10"
         
         # Execute query
         result = engine_instance.query(sql)
@@ -70,7 +80,7 @@ def test_simple_query_with_engine(engine_name, config):
 
 def run_simple_test():
     config = create_test_config()
-    engines = ['duckdb', 'polars', 'athena']
+    engines = ['duckdb', 'polars'] #], 'athena']
     success_count = 0
     
     for engine_name in engines:

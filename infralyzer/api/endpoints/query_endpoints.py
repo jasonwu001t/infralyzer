@@ -8,6 +8,11 @@ Supports:
 - Direct parquet file reading
 - Multiple output formats
 - All query engines (DuckDB, Polars, Athena)
+
+query sample:
+curl -X POST "http://localhost:8000/api/v1/finops/query" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "SELECT * FROM CUR LIMIT 1", "engine": "duckdb"}'
 """
 from fastapi import APIRouter, Depends, HTTPException, Body
 from typing import Dict, Any, List, Optional, Union

@@ -78,7 +78,6 @@ def get_app_config():
     print("   Table Name: CUR")
     return 'default'
 
-
 def create_app():
     """Create FastAPI application with appropriate configuration."""
     config_type = get_app_config()
