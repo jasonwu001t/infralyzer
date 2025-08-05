@@ -12,13 +12,13 @@ from pathlib import Path
 # Add the project root to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from de_polars import FinOpsEngine
-from de_polars.engine.data_config import DataConfig, DataExportType
+from infralyzer import FinOpsEngine
+from infralyzer.engine.data_config import DataConfig, DataExportType
 
 
 def test_basic_sql_queries():
     """Test basic SQL query functionality."""
-    print("🔍 Test 1: Basic SQL Queries")
+    print("Test 1: Basic SQL Queries")
     print("-" * 40)
     
     try:
@@ -42,7 +42,7 @@ def test_basic_sql_queries():
         
         # Initialize FinOps engine
         engine = FinOpsEngine(config)
-        print("✅ Engine initialized successfully")
+        print("Engine initialized successfully")
         
         # Test basic queries
         test_queries = [
@@ -101,37 +101,37 @@ def test_basic_sql_queries():
         ]
         
         for i, query_test in enumerate(test_queries, 1):
-            print(f"\n🔍 Query {i}: {query_test['name']}")
-            print(f"📝 Description: {query_test['description']}")
+            print(f"\nQuery {i}: {query_test['name']}")
+            print(f"Description: {query_test['description']}")
             
             try:
                 # Execute the query using the engine directly
                 result = engine.query(query_test['sql'])
                 
-                print(f"✅ Query executed successfully!")
-                print(f"📊 Results: {len(result)} rows × {len(result.columns)} columns")
+                print(f"Query executed successfully!")
+                print(f"Results: {len(result)} rows × {len(result.columns)} columns")
                 
                 # Display sample results
                 if len(result) > 0:
-                    print(f"📈 Sample data:")
+                    print(f"Sample data:")
                     # Convert to pandas for easier display
                     sample_df = result.head(3).to_pandas()
                     for idx, row in sample_df.iterrows():
                         print(f"   Row {idx + 1}: {dict(row)}")
                 
             except Exception as e:
-                print(f"❌ Query failed: {e}")
+                print(f"Query failed: {e}")
         
         return True
         
     except Exception as e:
-        print(f"❌ Test failed: {e}")
+        print(f"Test failed: {e}")
         return False
 
 
 def test_sql_api_interface():
     """Test the SQL API interface components."""
-    print("\n🔍 Test 2: SQL API Interface Components")
+    print("\nTest 2: SQL API Interface Components")
     print("-" * 40)
     
     try:
@@ -158,18 +158,18 @@ def test_sql_api_interface():
         # Test schema retrieval
         print("📋 Testing schema retrieval...")
         schema = engine.schema()
-        print(f"✅ Schema retrieved: {len(schema)} columns")
-        print(f"📊 Sample columns: {list(schema.keys())[:5]}...")
+        print(f"Schema retrieved: {len(schema)} columns")
+        print(f"Sample columns: {list(schema.keys())[:5]}...")
         
         # Test data source information
-        print(f"\n🗄️ Data Source Information:")
-        print(f"   📁 Table Name: {engine.engine.config.table_name}")
-        print(f"   🎯 Export Type: {engine.engine.config.data_export_type.value}")
-        print(f"   💾 Prefer Local: {engine.engine.config.prefer_local_data}")
-        print(f"   📊 Has Local Data: {engine.engine.has_local_data()}")
+        print(f"\nData Source Information:")
+        print(f"   Table Name: {engine.engine.config.table_name}")
+        print(f"    Export Type: {engine.engine.config.data_export_type.value}")
+        print(f"   Prefer Local: {engine.engine.config.prefer_local_data}")
+        print(f"   Has Local Data: {engine.engine.has_local_data()}")
         
         # Test SQL validation concepts (simulated)
-        print(f"\n🛡️ SQL Security Validation Examples:")
+        print(f"\nSQL Security Validation Examples:")
         
         safe_queries = [
             "SELECT * FROM CUR LIMIT 10",
@@ -184,24 +184,24 @@ def test_sql_api_interface():
             "CREATE TABLE malicious AS SELECT * FROM CUR"
         ]
         
-        print("✅ Safe queries (would be allowed):")
+        print("Safe queries (would be allowed):")
         for query in safe_queries:
             print(f"   ✓ {query}")
         
-        print("\n❌ Dangerous queries (would be blocked):")
+        print("\nDangerous queries (would be blocked):")
         for query in dangerous_queries:
             print(f"   ✗ {query}")
         
         return True
         
     except Exception as e:
-        print(f"❌ Test failed: {e}")
+        print(f"Test failed: {e}")
         return False
 
 
 def test_advanced_sql_scenarios():
     """Test advanced SQL query scenarios."""
-    print("\n🔍 Test 3: Advanced SQL Scenarios")
+    print("\nTest 3: Advanced SQL Scenarios")
     print("-" * 40)
     
     try:
@@ -283,38 +283,39 @@ def test_advanced_sql_scenarios():
         ]
         
         for i, query_test in enumerate(advanced_queries, 1):
-            print(f"\n🎯 Advanced Query {i}: {query_test['name']}")
-            print(f"📝 Description: {query_test['description']}")
+            print(f"\n Advanced Query {i}: {query_test['name']}")
+            print(f"Description: {query_test['description']}")
             
             try:
-                result = engine.query(query_test['sql'])
-                print(f"✅ Advanced query executed successfully!")
-                print(f"📊 Results: {len(result)} rows × {len(result.columns)} columns")
-                
-                # Save detailed results for analysis
-                if len(result) > 0:
-                    output_file = f"advanced_query_{i}_results.json"
-                    try:
-                        result_data = result.to_dicts()
-                        with open(output_file, 'w') as f:
-                            json.dump(result_data, f, indent=2, default=str)
-                        print(f"💾 Detailed results saved to: {output_file}")
-                    except Exception:
-                        print(f"⚠️ Could not save results to JSON (complex data types)")
+                            result = engine.query(query_test['sql'])  # Returns List[Dict] by default
+            print(f"Advanced query executed successfully!")
+            num_cols = len(result[0].keys()) if result else 0
+            print(f"Results: {len(result)} rows × {num_cols} columns")
+            
+            # Save detailed results for analysis
+            if len(result) > 0:
+                output_file = f"advanced_query_{i}_results.json"
+                try:
+                    # result is already a list of dicts, no conversion needed
+                    with open(output_file, 'w') as f:
+                        json.dump(result, f, indent=2, default=str)
+                    print(f"Detailed results saved to: {output_file}")
+                except Exception:
+                    print(f" Could not save results to JSON (complex data types)")
                 
             except Exception as e:
-                print(f"❌ Advanced query failed: {e}")
+                print(f"Advanced query failed: {e}")
         
         return True
         
     except Exception as e:
-        print(f"❌ Test failed: {e}")
+        print(f"Test failed: {e}")
         return False
 
 
 def main():
     """Run all SQL query endpoint tests."""
-    print("🚀 Test 14: SQL Query API Endpoint - Comprehensive Testing")
+    print("Test 14: SQL Query API Endpoint - Comprehensive Testing")
     print("=" * 70)
     print("Testing custom SQL query execution for flexible data analysis")
     print("=" * 70)
@@ -327,32 +328,32 @@ def main():
     }
     
     # Summary
-    print(f"\n📊 Test Results Summary:")
+    print(f"\nTest Results Summary:")
     print("=" * 50)
     
     passed = sum(test_results.values())
     total = len(test_results)
     
     for test_name, result in test_results.items():
-        status = "✅ PASSED" if result else "❌ FAILED"
+        status = "PASSED" if result else "FAILED"
         print(f"   {test_name}: {status}")
     
-    print(f"\n🎯 Overall: {passed}/{total} tests passed")
+    print(f"\n Overall: {passed}/{total} tests passed")
     
     if passed == total:
-        print("🎉 All SQL query endpoint tests completed successfully!")
-        print("\n🔍 New API Endpoints Available:")
+        print("All SQL query endpoint tests completed successfully!")
+        print("\nNew API Endpoints Available:")
         print("   • POST /api/v1/finops/sql/query - Execute custom SQL queries")
         print("   • GET  /api/v1/finops/sql/schema - Get data schema and examples")
         print("   • GET  /api/v1/finops/sql/tables - List available tables")
-        print("\n📊 Query Features:")
+        print("\nQuery Features:")
         print("   • Custom SELECT queries on AWS cost data")
         print("   • JSON and CSV output formats")
         print("   • Support for complex analytics and aggregations")
         print("   • Access to main data table and cost optimization views")
         print("   • Built-in SQL security validation")
     else:
-        print("⚠️ Some tests failed. Check the output above for details.")
+        print(" Some tests failed. Check the output above for details.")
 
 
 if __name__ == "__main__":

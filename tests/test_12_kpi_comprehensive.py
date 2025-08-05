@@ -18,8 +18,8 @@ from datetime import datetime
 # Add the project root to sys.path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from de_polars import FinOpsEngine
-from de_polars.engine.data_config import DataConfig, DataExportType
+from infralyzer import FinOpsEngine
+from infralyzer.engine.data_config import DataConfig, DataExportType
 
 
 def determine_data_source():
@@ -27,7 +27,7 @@ def determine_data_source():
     Determine which data source to use, prioritizing CUR 2.0 as requested.
     Returns tuple: (config, description)
     """
-    print("📊 Using CUR 2.0 data (as requested)")
+    print("Using CUR 2.0 data (as requested)")
     print()
     
     # Determine the correct local data path based on current working directory
@@ -59,8 +59,8 @@ def execute_view_from_sql_file(conn, sql_file_path, view_name, save_parquet=True
     Execute a SQL file to create a view in the current DuckDB connection.
     Optionally saves the view result as a parquet file.
     """
-    print(f"🔨 Creating view: {view_name}")
-    print(f"📁 SQL file: {sql_file_path}")
+    print(f"Creating view: {view_name}")
+    print(f"SQL file: {sql_file_path}")
     
     try:
         with open(sql_file_path, 'r', encoding='utf-8') as f:
@@ -68,7 +68,7 @@ def execute_view_from_sql_file(conn, sql_file_path, view_name, save_parquet=True
         
         # Special handling for kpi_instance_mapping.sql - fix DuckDB syntax
         if 'kpi_instance_mapping' in str(sql_file_path):
-            print("🔧 Fixing DuckDB syntax for kpi_instance_mapping...")
+            print("Fixing DuckDB syntax for kpi_instance_mapping...")
             sql_content = sql_content.replace('ROW (', '(')
         
         # Remove any existing CREATE OR REPLACE VIEW and add our own
@@ -89,7 +89,7 @@ def execute_view_from_sql_file(conn, sql_file_path, view_name, save_parquet=True
         # Create the view
         view_sql = f"CREATE OR REPLACE VIEW {view_name} AS\n" + '\n'.join(cleaned_lines)
         conn.execute(view_sql)
-        print(f"✅ View {view_name} created successfully")
+        print(f"View {view_name} created successfully")
         
         # Save view result as parquet if requested
         if save_parquet and views_output_path:
@@ -105,35 +105,35 @@ def execute_view_from_sql_file(conn, sql_file_path, view_name, save_parquet=True
             result_pl.write_parquet(parquet_path)
             
             file_size = os.path.getsize(parquet_path) / 1024  # KB
-            print(f"💾 Saved: {parquet_path} ({file_size:.1f} KB, {len(result_pl)} rows)")
+            print(f"Saved: {parquet_path} ({file_size:.1f} KB, {len(result_pl)} rows)")
         
         return True
         
     except Exception as e:
-        print(f"❌ Failed to create view {view_name}: {e}")
+        print(f"Failed to create view {view_name}: {e}")
         return False
 
 
 def main():
-    print("🚀 Comprehensive KPI Tracker Test")
+    print("Comprehensive KPI Tracker Test")
     print("=" * 80)
     
     # Determine data source (prioritize CUR 2.0)
     config, data_source_desc = determine_data_source()
     
-    print(f"🎯 Using {data_source_desc} data source")
-    print(f"🎯 Data Export Type: {config.data_export_type.value}")
-    print(f"📁 Partition Format: BILLING_PERIOD=YYYY-MM (monthly)")
+    print(f" Using {data_source_desc} data source")
+    print(f" Data Export Type: {config.data_export_type.value}")
+    print(f"Partition Format: BILLING_PERIOD=YYYY-MM (monthly)")
     print(f"📅 Date Format Required: YYYY-MM (e.g., '2025-07')")
     print(f"📂 Data Path: s3://{config.s3_bucket}/{config.s3_data_prefix}")
-    print(f"💾 Local Cache: {config.local_bucket_path}")
-    print(f"⚡ Prefer Local: {config.prefer_local_data}")
+    print(f"Local Cache: {config.local_bucket_path}")
+    print(f"Prefer Local: {config.prefer_local_data}")
     print()
     
     # Initialize FinOps Engine
     engine = FinOpsEngine(config)
     
-    print("📊 Testing basic data access...")
+    print("Testing basic data access...")
     try:
         # Test basic data access
         query = f"SELECT COUNT(*) as total_records FROM {config.table_name}"
@@ -142,14 +142,14 @@ def main():
             record_count = result['total_records'].iloc[0] if hasattr(result, 'iloc') else result['total_records'][0]
         else:
             record_count = 0
-        print(f"✅ Data available: {record_count:,} records")
+        print(f"Data available: {record_count:,} records")
         print()
         
     except Exception as e:
-        print(f"❌ Data access failed: {e}")
+        print(f"Data access failed: {e}")
         return
     
-    print("🏗️ Creating prerequisite views in single DuckDB session...")
+    print("Creating prerequisite views in single DuckDB session...")
     # Get a persistent DuckDB connection
     conn = engine.engine._get_duckdb_connection()
     
@@ -170,7 +170,7 @@ def main():
     
     # Create output directory for view results
     os.makedirs(views_output_path, exist_ok=True)
-    print(f"📁 View results will be saved to: {views_output_path}")
+    print(f"View results will be saved to: {views_output_path}")
     print()
     
     # Define the views to create in dependency order
@@ -195,23 +195,23 @@ def main():
                 successful_views.append(view_name)
                 saved_parquets.append(f"{views_output_path}/{view_name}.parquet")
         else:
-            print(f"⚠️ SQL file not found: {sql_path}")
+            print(f" SQL file not found: {sql_path}")
     
-    print(f"\n✅ Successfully created {len(successful_views)} views: {', '.join(successful_views)}")
-    print(f"💾 Saved {len(saved_parquets)} parquet files to {views_output_path}")
+    print(f"\nSuccessfully created {len(successful_views)} views: {', '.join(successful_views)}")
+    print(f"Saved {len(saved_parquets)} parquet files to {views_output_path}")
     print()
     
     # Execute kpi_tracker.sql
-    print("📈 Executing actual kpi_tracker.sql using cur2_views...")
+    print("Executing actual kpi_tracker.sql using cur2_views...")
     
     kpi_sql_path = Path(f"{views_base_path}/level_3_final/kpi_tracker.sql")
     
     if not kpi_sql_path.exists():
-        print(f"❌ kpi_tracker.sql not found at: {kpi_sql_path}")
+        print(f"kpi_tracker.sql not found at: {kpi_sql_path}")
         return
     
     try:
-        print("🔍 Loading and executing kpi_tracker.sql...")
+        print("Loading and executing kpi_tracker.sql...")
         
         with open(kpi_sql_path, 'r', encoding='utf-8') as f:
             kpi_sql = f.read()
@@ -233,11 +233,11 @@ def main():
         
         kpi_sql_cleaned = '\n'.join(cleaned_lines)
         
-        print(f"📊 Executing kpi_tracker query with {len(successful_views)} prerequisite views...")
+        print(f"Executing kpi_tracker query with {len(successful_views)} prerequisite views...")
         print(f"🔗 Available views: {', '.join(successful_views)}")
         
         # Fix the original kpi_tracker.sql for DuckDB compatibility
-        print("🔧 Fixing original kpi_tracker.sql for DuckDB compatibility...")
+        print("Fixing original kpi_tracker.sql for DuckDB compatibility...")
         
         # The issue is in the complex nested subqueries - convert to CTEs
         kpi_sql_fixed = kpi_sql_cleaned.replace(
@@ -247,28 +247,28 @@ def main():
         
         # Try the original SQL first
         try:
-            print("🎯 Attempting to run original kpi_tracker.sql with DuckDB fixes...")
+            print(" Attempting to run original kpi_tracker.sql with DuckDB fixes...")
             result = conn.execute(kpi_sql_fixed).fetchdf()
-            print(f"✅ Original kpi_tracker.sql executed successfully! Got {len(result)} row(s)")
+            print(f"Original kpi_tracker.sql executed successfully! Got {len(result)} row(s)")
         except Exception as e:
-            print(f"⚠️ Original SQL still has issues: {e}")
-            print("🔄 Falling back to restructured version...")
+            print(f" Original SQL still has issues: {e}")
+            print(" Falling back to restructured version...")
             
             # Load the restructured SQL file
             restructured_sql_path = Path(f"{views_base_path}/level_3_final/kpi_tracker_restructured.sql")
-            print(f"📁 Loading restructured SQL from: {restructured_sql_path}")
+            print(f"Loading restructured SQL from: {restructured_sql_path}")
             
             if restructured_sql_path.exists():
                 with open(restructured_sql_path, 'r', encoding='utf-8') as f:
                     restructured_sql = f.read()
-                print(f"✅ Loaded restructured SQL ({len(restructured_sql)} characters)")
+                print(f"Loaded restructured SQL ({len(restructured_sql)} characters)")
                 result = conn.execute(restructured_sql).fetchdf()
             else:
-                print(f"❌ Restructured SQL file not found: {restructured_sql_path}")
+                print(f"Restructured SQL file not found: {restructured_sql_path}")
                 raise FileNotFoundError(f"Could not find {restructured_sql_path}")
         
         if len(result) > 0:
-            print(f"✅ kpi_tracker.sql executed successfully! Got {len(result)} row(s)")
+            print(f"kpi_tracker.sql executed successfully! Got {len(result)} row(s)")
             row = result.iloc[0]
             
             # Create comprehensive JSON response
@@ -385,7 +385,7 @@ def main():
                 }
             }
             
-            print("\n🎯 KPI Tracker Results")
+            print("\n KPI Tracker Results")
             print("=" * 50)
             print(json.dumps(json_response, indent=2))
             
@@ -393,21 +393,21 @@ def main():
             output_file = "kpi_tracker_results.json"
             with open(output_file, 'w') as f:
                 json.dump(json_response, f, indent=2)
-            print(f"\n💾 Results saved to: {output_file}")
+            print(f"\nResults saved to: {output_file}")
             
             # Summary
-            print(f"\n📊 Key Metrics Summary:")
-            print(f"   💰 Total Spend: ${json_response['overall_spend']['spend_all_cost']:.2f}")
-            print(f"   💡 Potential Savings: ${json_response['savings_summary']['total_potential_savings']:.2f}")
+            print(f"\nKey Metrics Summary:")
+            print(f"   Total Spend: ${json_response['overall_spend']['spend_all_cost']:.2f}")
+            print(f"   Potential Savings: ${json_response['savings_summary']['total_potential_savings']:.2f}")
             print(f"   📅 Billing Period: {json_response['overall_spend']['billing_period']}")
-            print(f"   🖥️ EC2 Cost: ${json_response['ec2_metrics']['ec2_all_cost']:.2f}")
-            print(f"   💾 Storage Cost: ${json_response['storage_metrics']['ebs_all_cost']:.2f}")
+            print(f"    EC2 Cost: ${json_response['ec2_metrics']['ec2_all_cost']:.2f}")
+            print(f"   Storage Cost: ${json_response['storage_metrics']['ebs_all_cost']:.2f}")
             
         else:
-            print("⚠️ No data returned from kpi_tracker query")
+            print(" No data returned from kpi_tracker query")
             
     except Exception as e:
-        print(f"❌ Failed to execute kpi_tracker.sql: {e}")
+        print(f"Failed to execute kpi_tracker.sql: {e}")
         return
     
     finally:
@@ -415,10 +415,10 @@ def main():
             conn.close()
     
     # Summary of created parquet files
-    print(f"\n📊 View Results Summary:")
+    print(f"\nView Results Summary:")
     print("=" * 50)
-    print(f"📁 Output Directory: {views_output_path}")
-    print(f"🗃️ Parquet Files Created:")
+    print(f"Output Directory: {views_output_path}")
+    print(f" Parquet Files Created:")
     
     for i, parquet_file in enumerate(saved_parquets, 1):
         if os.path.exists(parquet_file):
@@ -428,9 +428,9 @@ def main():
             print(f"   {i}. {filename} ({file_size:.1f} KB)")
         else:
             filename = os.path.basename(parquet_file)
-            print(f"   {i}. {filename} (⚠️ not found)")
+            print(f"   {i}. {filename} ( not found)")
     
-    print(f"\n🎉 KPI Tracker test completed successfully!")
+    print(f"\nKPI Tracker test completed successfully!")
 
 
 if __name__ == "__main__":

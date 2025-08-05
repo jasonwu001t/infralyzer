@@ -2,7 +2,7 @@
 FinOps Test Suite
 ================
 
-Independent test modules for validating de-polars FinOps functionality.
+Independent test modules for validating infralyzer FinOps functionality.
 
 Test Modules:
 - test_1_query_s3: Direct S3 parquet file querying

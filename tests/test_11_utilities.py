@@ -11,7 +11,7 @@ import os
 # Add parent directory to path to import local de_polars module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from de_polars import (
+from infralyzer import (
     FinOpsEngine, DataConfig, DataExportType,
     CurrencyFormatter, NumberFormatter, DateFormatter,
     DataValidator, ConfigValidator,
@@ -22,7 +22,7 @@ from datetime import datetime, date
 def test_utilities():
     """Test utility functions and formatters"""
     
-    print("🔧 Test 11: Utilities & Formatters")
+    print("Test 11: Utilities & Formatters")
     print("=" * 50)
     
     # Configuration using local data from Test 2
@@ -41,7 +41,7 @@ def test_utilities():
     
     try:
         # Test 1: Currency Formatter
-        print("\n💰 Step 1: Currency Formatter")
+        print("\nStep 1: Currency Formatter")
         print("-" * 40)
         
         currency_formatter = CurrencyFormatter()
@@ -56,7 +56,7 @@ def test_utilities():
             
             print(f"${amount:>10.2f} → {formatted_usd:>12} | {formatted_eur:>12} | {large_format:>8}")
         
-        print("✅ Currency formatting completed")
+        print("Currency formatting completed")
         
         # Test 2: Number Formatter
         print("\n🔢 Step 2: Number Formatter")
@@ -74,7 +74,7 @@ def test_utilities():
             
             print(f"{number:>10} → {formatted_num:>15} | {large_format:>8} | {percentage:>8}")
         
-        print("✅ Number formatting completed")
+        print("Number formatting completed")
         
         # Test 3: Date Formatter
         print("\n📅 Step 3: Date Formatter")
@@ -96,10 +96,10 @@ def test_utilities():
         for format_name, formatted_date in formats:
             print(f"{format_name:>12}: {formatted_date}")
         
-        print("✅ Date formatting completed")
+        print("Date formatting completed")
         
         # Test 4: Data Validator
-        print("\n✅ Step 4: Data Validator")
+        print("\nStep 4: Data Validator")
         print("-" * 40)
         
         validator = DataValidator()
@@ -110,14 +110,14 @@ def test_utilities():
             validator_methods = [method for method in dir(validator) if not method.startswith('_')]
             print(f"Validator methods available: {len(validator_methods)}")
             print(f"Sample methods: {', '.join(validator_methods[:3])}")
-            print("✅ Data validator initialized successfully")
+            print("Data validator initialized successfully")
         except Exception as e:
-            print(f"⚠️ Data validator test simplified: {str(e)[:40]}...")
+            print(f" Data validator test simplified: {str(e)[:40]}...")
         
-        print("✅ Data validation completed")
+        print("Data validation completed")
         
         # Test 5: Config Validator  
-        print("\n⚙️ Step 5: Config Validator")
+        print("\nStep 5: Config Validator")
         print("-" * 40)
         
         config_validator = ConfigValidator()
@@ -128,14 +128,14 @@ def test_utilities():
             config_validator_methods = [method for method in dir(config_validator) if not method.startswith('_')]
             print(f"Config validator methods available: {len(config_validator_methods)}")
             print(f"Sample methods: {', '.join(config_validator_methods[:3])}")
-            print("✅ Config validator initialized successfully")
+            print("Config validator initialized successfully")
         except Exception as e:
-            print(f"⚠️ Config validator test simplified: {str(e)[:40]}...")
+            print(f" Config validator test simplified: {str(e)[:40]}...")
         
-        print("✅ Config validation completed")
+        print("Config validation completed")
         
         # Test 6: Query Profiler
-        print("\n⏱️ Step 6: Query Profiler")
+        print("\nStep 6: Query Profiler")
         print("-" * 40)
         
         # Initialize engine for profiling
@@ -147,14 +147,14 @@ def test_utilities():
             profiler_methods = [method for method in dir(profiler) if not method.startswith('_')]
             print(f"Profiler methods available: {len(profiler_methods)}")
             print(f"Sample methods: {', '.join(profiler_methods[:3])}")
-            print("✅ Query profiler initialized successfully")
+            print("Query profiler initialized successfully")
         except Exception as e:
-            print(f"⚠️ Query profiler test simplified: {str(e)[:40]}...")
+            print(f" Query profiler test simplified: {str(e)[:40]}...")
         
-        print("✅ Query profiling completed")
+        print("Query profiling completed")
         
         # Test 7: Cache Manager
-        print("\n🗄️ Step 7: Cache Manager")
+        print("\nStep 7: Cache Manager")
         print("-" * 40)
         
         cache_manager = CacheManager()
@@ -164,35 +164,35 @@ def test_utilities():
             cache_methods = [method for method in dir(cache_manager) if not method.startswith('_')]
             print(f"Cache manager methods available: {len(cache_methods)}")
             print(f"Sample methods: {', '.join(cache_methods[:3])}")
-            print("✅ Cache manager initialized successfully")
+            print("Cache manager initialized successfully")
         except Exception as e:
-            print(f"⚠️ Cache manager test simplified: {str(e)[:40]}...")
+            print(f" Cache manager test simplified: {str(e)[:40]}...")
         
-        print("✅ Cache management completed")
+        print("Cache management completed")
         
         # Test 8: Utility Summary
-        print("\n📊 Step 8: Utility Summary")
+        print("\nStep 8: Utility Summary")
         print("-" * 40)
         
-        print(f"🔧 Utilities Test Summary:")
-        print(f"   ✅ Currency Formatter: Multiple currencies & abbreviations")
-        print(f"   ✅ Number Formatter: Commas, abbreviations, percentages")
-        print(f"   ✅ Date Formatter: ISO, US, EU, relative formats")
-        print(f"   ✅ Data Validator: Cost data validation with error reporting")
-        print(f"   ✅ Config Validator: Configuration validation")
-        print(f"   ✅ Query Profiler: Performance monitoring")
-        print(f"   ✅ Cache Manager: In-memory caching operations")
+        print(f"Utilities Test Summary:")
+        print(f"   Currency Formatter: Multiple currencies & abbreviations")
+        print(f"   Number Formatter: Commas, abbreviations, percentages")
+        print(f"   Date Formatter: ISO, US, EU, relative formats")
+        print(f"   Data Validator: Cost data validation with error reporting")
+        print(f"   Config Validator: Configuration validation")
+        print(f"   Query Profiler: Performance monitoring")
+        print(f"   Cache Manager: In-memory caching operations")
         
         # Demonstrate combined usage
         total_cost = 23.08
         formatted_display = f"Total AWS spend: {CurrencyFormatter().format_currency(total_cost)} across {NumberFormatter().format_number(2938)} line items"
-        print(f"\n💡 Combined Example: {formatted_display}")
+        print(f"\nCombined Example: {formatted_display}")
         
-        print(f"\n🎉 Test 11 PASSED: Utilities and formatters completed successfully!")
+        print(f"\nTest 11 PASSED: Utilities and formatters completed successfully!")
         return True
         
     except Exception as e:
-        print(f"❌ Test 11 FAILED: {str(e)}")
+        print(f"Test 11 FAILED: {str(e)}")
         return False
 
 if __name__ == "__main__":

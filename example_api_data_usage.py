@@ -6,16 +6,16 @@ This example demonstrates how to use the new API data sources to enrich
 CUR2.0 analysis with pricing and Savings Plans information.
 """
 
-from de_polars.engine.data_config import DataConfig, DataExportType
-from de_polars.finops_engine import FinOpsEngine
-from de_polars.data.api_data_examples import ApiDataExamples
+from infralyzer.engine.data_config import DataConfig, DataExportType
+from infralyzer.finops_engine import FinOpsEngine
+from infralyzer.data.api_data_examples import ApiDataExamples
 
 
 def main():
     """Main example function."""
     
     # 1. Configure with API data sources enabled
-    print("🔧 Configuring FinOps engine with API data sources...")
+    print("Configuring FinOps engine with API data sources...")
     
     config = DataConfig(
         # Core CUR2.0 configuration (remember: CUR2.0 only per user requirement)
@@ -48,20 +48,20 @@ def main():
     )
     
     # 2. Initialize FinOps engine
-    print("🚀 Initializing FinOps engine...")
+    print("Initializing FinOps engine...")
     engine = FinOpsEngine(config)
     
     # 3. Initialize API data examples helper
     api_examples = ApiDataExamples(engine)
     
     # 4. Show available API tables
-    print("\n📋 Available API data tables:")
+    print("\nAvailable API data tables:")
     available_tables = api_examples.get_available_api_tables()
     for table in available_tables:
         print(f"  - {table}")
     
     # 5. Show table schemas and join information
-    print("\n📊 Table schemas and join patterns:")
+    print("\nTable schemas and join patterns:")
     schemas = api_examples.describe_table_schemas()
     for table_name, schema_info in schemas.items():
         print(f"\n{table_name}:")
@@ -70,10 +70,10 @@ def main():
         print(f"  Join with CUR2.0: {', '.join(schema_info['join_columns']['CUR2.0'])}")
     
     # 6. Run example queries that join CUR2.0 with API data
-    print("\n🔍 Running example join analyses...")
+    print("\nRunning example join analyses...")
     
     # Example 1: Simple cost efficiency check
-    print("\n📊 Example 1: Cost efficiency analysis")
+    print("\nExample 1: Cost efficiency analysis")
     try:
         cost_efficiency_query = """
         SELECT 
@@ -98,16 +98,16 @@ def main():
         """
         
         result = engine.query(cost_efficiency_query)
-        print(f"✅ Found {len(result)} instance types with pricing data")
+        print(f"Found {len(result)} instance types with pricing data")
         if len(result) > 0:
-            print("📋 Top 5 results:")
+            print("Top 5 results:")
             print(result.head(5))
         
     except Exception as e:
-        print(f"❌ Error in cost efficiency analysis: {e}")
+        print(f"Error in cost efficiency analysis: {e}")
     
     # Example 2: Savings Plans coverage
-    print("\n📊 Example 2: Savings Plans coverage analysis")
+    print("\nExample 2: Savings Plans coverage analysis")
     try:
         savings_coverage_query = """
         SELECT 
@@ -125,20 +125,20 @@ def main():
         """
         
         result = engine.query(savings_coverage_query)
-        print(f"✅ Found {len(result)} billing periods")
+        print(f"Found {len(result)} billing periods")
         if len(result) > 0:
-            print("📋 Results:")
+            print("Results:")
             print(result)
         
     except Exception as e:
-        print(f"❌ Error in Savings Plans analysis: {e}")
+        print(f"Error in Savings Plans analysis: {e}")
     
     # 7. Run comprehensive analysis suite
-    print("\n🔬 Running comprehensive API data analysis suite...")
+    print("\nRunning comprehensive API data analysis suite...")
     try:
         analysis_results = api_examples.run_api_data_analysis()
         
-        print(f"\n✅ Completed {len(analysis_results)} analyses:")
+        print(f"\nCompleted {len(analysis_results)} analyses:")
         for name, df in analysis_results.items():
             if not df.is_empty():
                 print(f"  - {name}: {len(df)} rows")
@@ -146,14 +146,14 @@ def main():
                 print(f"  - {name}: No data")
                 
     except Exception as e:
-        print(f"❌ Error in comprehensive analysis: {e}")
+        print(f"Error in comprehensive analysis: {e}")
     
     # 8. Export API data for external use
-    print("\n💾 Exporting API data for external tools...")
+    print("\nExporting API data for external tools...")
     try:
         export_results = api_examples.export_api_data_for_external_use("./exported_api_data")
         
-        print("✅ Exported files:")
+        print("Exported files:")
         for table_name, file_info in export_results.items():
             if isinstance(file_info, dict):
                 print(f"  - {table_name}: {file_info['rows']} rows")
@@ -161,15 +161,15 @@ def main():
                 print(f"    CSV: {file_info['csv']}")
             
     except Exception as e:
-        print(f"❌ Error exporting data: {e}")
+        print(f"Error exporting data: {e}")
     
-    print("\n🎉 Example completed! ")
-    print("\n💡 Key benefits of API data integration:")
+    print("\nExample completed! ")
+    print("\nKey benefits of API data integration:")
     print("  - Real-time pricing data for cost analysis")
     print("  - Savings Plans coverage and utilization tracking") 
     print("  - Enhanced cost optimization insights")
     print("  - Seamless joins with existing CUR2.0 data")
-    print("\n🔗 Tables are automatically registered and ready for SQL joins!")
+    print("\nTables are automatically registered and ready for SQL joins!")
 
 
 if __name__ == "__main__":

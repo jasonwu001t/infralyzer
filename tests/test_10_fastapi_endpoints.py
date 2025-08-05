@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
-from de_polars import FinOpsEngine, DataConfig, DataExportType
+from infralyzer import FinOpsEngine, DataConfig, DataExportType
 import uvicorn
 from typing import Optional, Dict, Any
 
@@ -42,7 +42,7 @@ def initialize_engine():
     )
     
     engine = FinOpsEngine(config)
-    print(f"✅ Engine initialized with local data at {local_path}")
+    print(f"Engine initialized with local data at {local_path}")
 
 # Create FastAPI app
 app = FastAPI(
@@ -56,9 +56,9 @@ async def startup_event():
     """Initialize engine on startup"""
     try:
         initialize_engine()
-        print("🚀 FastAPI server started with local parquet data")
+        print("FastAPI server started with local parquet data")
     except Exception as e:
-        print(f"❌ Failed to initialize engine: {str(e)}")
+        print(f"Failed to initialize engine: {str(e)}")
 
 @app.get("/")
 async def root():
@@ -220,17 +220,17 @@ async def search_service(service_name: str):
 def test_fastapi_endpoints():
     """Test function to start the FastAPI server"""
     
-    print("🌐 Test 4: FastAPI Endpoints with Local Parquet Files")
+    print("Test 4: FastAPI Endpoints with Local Parquet Files")
     print("=" * 60)
     
     # Check if local data exists
     local_path = "./test_local_data"
     if not os.path.exists(local_path):
-        print(f"❌ Local data not found at {local_path}")
+        print(f"Local data not found at {local_path}")
         print("Please run test_2_download_local.py first to download data")
         return False
     
-    print("🚀 Starting FastAPI server...")
+    print("Starting FastAPI server...")
     print("📍 Server will be available at: http://localhost:8000")
     print("\n🔗 Available endpoints:")
     print("   • GET /                     - API information")
@@ -239,7 +239,7 @@ def test_fastapi_endpoints():
     print("   • GET /daily-costs?limit=30 - Daily cost breakdown")
     print("   • GET /search-service/{service_name} - Search specific service")
     print("\n📖 API documentation available at: http://localhost:8000/docs")
-    print("\n⚠️  Press Ctrl+C to stop the server")
+    print("\nPress Ctrl+C to stop the server")
     print("=" * 60)
     
     try:
@@ -251,7 +251,7 @@ def test_fastapi_endpoints():
         print("\n🛑 Server stopped by user")
         return True
     except Exception as e:
-        print(f"❌ Test 4 FAILED: {str(e)}")
+        print(f"Test 4 FAILED: {str(e)}")
         return False
 
 if __name__ == "__main__":

@@ -131,12 +131,12 @@ def main():
     # Run automatic tests (all except Test 4 which needs manual termination)
     for test in tests:
         if test["auto"]:
-            print(f"\n🚀 Running {test['name']}")
+            print(f"\nRunning {test['name']}")
             print("-" * 40)
             
             test_file = os.path.join(os.path.dirname(__file__), test["file"])
             if not os.path.exists(test_file):
-                print(f"❌ Test file not found: {test_file}")
+                print(f"Test file not found: {test_file}")
                 results[test["name"]] = False
                 continue
             
@@ -148,32 +148,32 @@ def main():
             results[test["name"]] = result
             duration = end_time - start_time
             
-            status = "✅ PASSED" if result else "❌ FAILED"
+            status = "PASSED" if result else "FAILED"
             print(f"\n{status} - {test['name']} (completed in {duration:.1f}s)")
             
             # Wait a bit between tests
             if result:
                 time.sleep(2)
             else:
-                print("❌ Test failed - stopping execution")
+                print("Test failed - stopping execution")
                 break
     
     # Print summary
-    print(f"\n📊 TEST SUMMARY")
+    print(f"\nTEST SUMMARY")
     print("=" * 60)
     
     passed_tests = sum(1 for result in results.values() if result)
     total_tests = len([t for t in tests if t["auto"]])
     
     for test_name, result in results.items():
-        status = "✅ PASSED" if result else "❌ FAILED"
+        status = "PASSED" if result else "FAILED"
         print(f"{status} - {test_name}")
     
     print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
     
     # Handle FastAPI test (Test 4)
     if passed_tests == total_tests:
-        print(f"\n🌐 Ready for Test 4: FastAPI Endpoints")
+        print(f"\nReady for Test 4: FastAPI Endpoints")
         print("-" * 40)
         
         response = input("Do you want to start the FastAPI server? (y/n): ").lower()
@@ -182,8 +182,8 @@ def main():
             fastapi_test = next(t for t in tests if t["file"] == "test_4_fastapi_endpoints.py")
             test_file = os.path.join(os.path.dirname(__file__), fastapi_test["file"])
             
-            print(f"\n🚀 Starting {fastapi_test['name']}")
-            print("⚠️  Press Ctrl+C to stop the server when done testing")
+            print(f"\nStarting {fastapi_test['name']}")
+            print("Press Ctrl+C to stop the server when done testing")
             print("-" * 40)
             
             # Run FastAPI test
@@ -194,10 +194,10 @@ def main():
             print("python test_4_fastapi_endpoints.py")
     
     else:
-        print(f"\n❌ Cannot run Test 4 because previous tests failed")
+        print(f"\nCannot run Test 4 because previous tests failed")
         print("Please fix the failing tests first.")
     
-    print(f"\n🎉 Test suite completed!")
+    print(f"\nTest suite completed!")
 
 if __name__ == "__main__":
     main()

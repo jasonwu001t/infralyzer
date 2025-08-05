@@ -11,7 +11,7 @@ import os
 # Add parent directory to path to import local de_polars module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from de_polars import FinOpsEngine, DataConfig, DataExportType
+from infralyzer import FinOpsEngine, DataConfig, DataExportType
 import shutil
 
 def test_download_local():

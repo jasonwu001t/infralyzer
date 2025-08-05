@@ -11,13 +11,13 @@ import os
 # Add parent directory to path to import local de_polars module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from de_polars import FinOpsEngine, DataConfig, DataExportType, DataExporter, ReportGenerator
+from infralyzer import FinOpsEngine, DataConfig, DataExportType, DataExporter, ReportGenerator
 import json
 
 def test_data_export():
     """Test data export and reporting capabilities"""
     
-    print("📊 Test 9: Data Export & Reporting")
+    print("Test 9: Data Export & Reporting")
     print("=" * 50)
     
     # Configuration using local data from Test 2
@@ -37,12 +37,12 @@ def test_data_export():
     try:
         # Check if local data exists
         if not os.path.exists(local_path):
-            print(f"❌ Local data not found at {local_path}")
+            print(f"Local data not found at {local_path}")
             print("Please run test_2_download_local.py first")
             return False
         
         # Initialize engine
-        print("🚀 Initializing FinOps Engine...")
+        print("Initializing FinOps Engine...")
         engine = FinOpsEngine(config)
         
         # Create output directory for exports
@@ -53,7 +53,8 @@ def test_data_export():
         print("\n📤 Step 1: Basic Data Exports")
         print("-" * 40)
         
-        # Get sample data for export
+        # Get sample data for export (as DataFrame for mathematical operations)
+        from infralyzer.engine import QueryResultFormat
         cost_summary = engine.query("""
             SELECT 
                 product_servicecode as service,
@@ -64,13 +65,13 @@ def test_data_export():
             GROUP BY product_servicecode 
             ORDER BY total_cost DESC 
             LIMIT 10
-        """)
+        """, format=QueryResultFormat.DATAFRAME)
         
-        print(f"✅ Sample data prepared: {len(cost_summary)} rows")
+        print(f"Sample data prepared: {len(cost_summary)} rows")
         
         # Export to JSON
         json_output = DataExporter.export_to_json(cost_summary, f"{export_dir}/cost_summary.json")
-        print(f"📄 JSON export: {export_dir}/cost_summary.json")
+        print(f"JSON export: {export_dir}/cost_summary.json")
         
         # Export to CSV
         csv_output = DataExporter.export_to_csv(cost_summary, f"{export_dir}/cost_summary.csv")
@@ -79,12 +80,12 @@ def test_data_export():
         # Export to Excel (if available)
         try:
             excel_output = DataExporter.export_to_excel(cost_summary, f"{export_dir}/cost_summary.xlsx")
-            print(f"📊 Excel export: {export_dir}/cost_summary.xlsx")
+            print(f"Excel export: {export_dir}/cost_summary.xlsx")
         except Exception as e:
-            print(f"⚠️ Excel export skipped (dependency missing): {str(e)[:50]}...")
+            print(f" Excel export skipped (dependency missing): {str(e)[:50]}...")
         
         # Test 2: Advanced Export Options
-        print("\n🔧 Step 2: Advanced Export Options")
+        print("\nStep 2: Advanced Export Options")
         print("-" * 40)
         
         # Export with custom formatting
@@ -93,7 +94,7 @@ def test_data_export():
             f"{export_dir}/formatted_cost_summary.json",
             indent=4
         )
-        print(f"✨ Formatted JSON: {export_dir}/formatted_cost_summary.json")
+        print(f"Formatted JSON: {export_dir}/formatted_cost_summary.json")
         
         # Export CSV without headers
         no_header_csv = DataExporter.export_to_csv(
@@ -101,7 +102,7 @@ def test_data_export():
             f"{export_dir}/cost_summary_no_headers.csv",
             include_headers=False
         )
-        print(f"📄 CSV (no headers): {export_dir}/cost_summary_no_headers.csv")
+        print(f"CSV (no headers): {export_dir}/cost_summary_no_headers.csv")
         
         # Test 3: Report Generation
         print("\n📑 Step 3: Report Generation")
@@ -135,13 +136,13 @@ def test_data_export():
         detailed_report = ReportGenerator.generate_detailed_report(
             spend_data=spend_data,
             optimization_data=optimization_data,
-            cost_breakdown=cost_summary.to_dicts(),
+            cost_breakdown=cost_summary.to_dict('records'),
             file_path=f"{export_dir}/detailed_report.md"
         )
-        print(f"📊 Detailed Report: {export_dir}/detailed_report.md")
+        print(f"Detailed Report: {export_dir}/detailed_report.md")
         
         # Test 4: Custom Export Formats
-        print("\n🎨 Step 4: Custom Export Formats")
+        print("\nStep 4: Custom Export Formats")
         print("-" * 40)
         
         # Create a custom export with metadata
@@ -152,7 +153,7 @@ def test_data_export():
                 "total_records": len(cost_summary),
                 "export_type": "cost_summary"
             },
-            "data": cost_summary.to_dicts(),
+            "data": cost_summary.to_dict('records'),
             "summary": {
                 "total_cost": float(cost_summary['total_cost'].sum()),
                 "service_count": len(cost_summary),
@@ -162,10 +163,10 @@ def test_data_export():
         
         # Export custom format
         DataExporter.export_to_json(custom_export, f"{export_dir}/custom_export.json")
-        print(f"🎯 Custom Export: {export_dir}/custom_export.json")
+        print(f" Custom Export: {export_dir}/custom_export.json")
         
         # Test 5: Verify Exports
-        print("\n✅ Step 5: Verify Exports")
+        print("\nStep 5: Verify Exports")
         print("-" * 40)
         
         # Check created files
@@ -175,7 +176,7 @@ def test_data_export():
             file_size = os.path.getsize(file_path)
             export_files.append((file, file_size))
         
-        print(f"📁 Created {len(export_files)} export files:")
+        print(f"Created {len(export_files)} export files:")
         for filename, size in export_files:
             size_kb = size / 1024
             print(f"   • {filename}: {size_kb:.1f} KB")
@@ -184,27 +185,27 @@ def test_data_export():
         try:
             with open(f"{export_dir}/cost_summary.json", 'r') as f:
                 verified_data = json.load(f)
-            print(f"✅ JSON verification: {len(verified_data)} records loaded")
+            print(f"JSON verification: {len(verified_data)} records loaded")
         except Exception as e:
-            print(f"⚠️ JSON verification failed: {str(e)}")
+            print(f" JSON verification failed: {str(e)}")
         
         # Test 6: Export Summary
-        print("\n📈 Step 6: Export Summary")
+        print("\nStep 6: Export Summary")
         print("-" * 40)
         
         total_size = sum(size for _, size in export_files)
-        print(f"📊 Export Statistics:")
+        print(f"Export Statistics:")
         print(f"   • Total Files: {len(export_files)}")
         print(f"   • Total Size: {total_size / 1024:.1f} KB")
         print(f"   • Formats: JSON, CSV, TXT, MD")
         print(f"   • Reports: Executive Summary, Detailed Report")
         print(f"   • Custom Exports: Metadata-enriched JSON")
         
-        print(f"\n🎉 Test 9 PASSED: Data export and reporting completed successfully!")
+        print(f"\nTest 9 PASSED: Data export and reporting completed successfully!")
         return True
         
     except Exception as e:
-        print(f"❌ Test 9 FAILED: {str(e)}")
+        print(f"Test 9 FAILED: {str(e)}")
         return False
 
 if __name__ == "__main__":

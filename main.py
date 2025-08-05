@@ -18,7 +18,7 @@ API Documentation:
 """
 
 import os
-from de_polars.api import create_finops_app, create_finops_app_from_env
+from infralyzer.api import create_finops_app, create_finops_app_from_env
 
 # Option 1: Create app from environment variables
 # Set these environment variables before running:
@@ -30,10 +30,10 @@ from de_polars.api import create_finops_app, create_finops_app_from_env
 try:
     # Try to create from environment first
     app = create_finops_app_from_env()
-    print("✅ FastAPI app created from environment variables")
+    print("FastAPI app created from environment variables")
 except ValueError as e:
-    print(f"⚠️  Environment variables not set: {e}")
-    print("🔧 Creating app with default configuration...")
+    print(f"Environment variables not set: {e}")
+    print("Creating app with default configuration...")
     
     # Option 2: Fallback to direct configuration
     app = create_finops_app(
@@ -43,32 +43,32 @@ except ValueError as e:
         local_data_path=os.getenv('FINOPS_LOCAL_PATH', './local_data'),
         table_name=os.getenv('FINOPS_TABLE_NAME', 'CUR')
     )
-    print("✅ FastAPI app created with default configuration")
+    print("FastAPI app created with default configuration")
 
 # Add startup message
 @app.on_event("startup")
 async def startup_event():
     print("\n" + "="*70)
-    print("🚀 DE-POLARS FINOPS API SERVER STARTED")
+    print("INFRALYZER FINOPS API SERVER STARTED")
     print("="*70)
-    print("📊 Comprehensive Cost Analytics Platform")
-    print("💾 Local data caching for cost optimization")
-    print("🤖 AI-powered insights and recommendations")
-    print("📈 Real-time cost monitoring and alerts")
-    print("\n🌐 API Endpoints Available:")
-    print("   📖 Interactive Docs: http://localhost:8000/docs")
-    print("   📝 ReDoc: http://localhost:8000/redoc") 
-    print("   🏥 Health Check: http://localhost:8000/health")
-    print("   ⭐ KPI Summary: http://localhost:8000/api/v1/finops/kpi/summary")
-    print("   💰 Spend Analytics: http://localhost:8000/api/v1/finops/spend/invoice/summary")
-    print("   ⚡ Optimization: http://localhost:8000/api/v1/finops/optimization/idle-resources")
+    print("Comprehensive Cost Analytics Platform")
+    print("Local data caching for cost optimization")
+    print("AI-powered insights and recommendations")
+    print("Real-time cost monitoring and alerts")
+    print("\nAPI Endpoints Available:")
+    print("   Interactive Docs: http://localhost:8000/docs")
+    print("   ReDoc: http://localhost:8000/redoc") 
+    print("   Health Check: http://localhost:8000/health")
+    print("   KPI Summary: http://localhost:8000/api/v1/finops/kpi/summary")
+    print("   Spend Analytics: http://localhost:8000/api/v1/finops/spend/invoice/summary")
+    print("   Optimization: http://localhost:8000/api/v1/finops/optimization/idle-resources")
     print("="*70)
 
 if __name__ == "__main__":
     import uvicorn
     
-    print("🔧 Starting development server...")
-    print("💡 For production, use: uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4")
+    print("Starting development server...")
+    print("For production, use: uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4")
     
     uvicorn.run(
         "main:app",
