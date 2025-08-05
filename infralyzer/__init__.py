@@ -65,6 +65,9 @@ from .analytics import (
 # MCP integration
 from .analytics.mcp_integration import MCPIntegrationAnalytics
 
+# AWS Bedrock integration
+from .utils.bedrock_handler import BedrockHandler, BedrockModel, ModelConfiguration, KnowledgeBaseConfig
+
 # Authentication utilities
 from .auth import (
     check_credential_expiration,

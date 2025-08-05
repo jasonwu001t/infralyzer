@@ -17,7 +17,8 @@ from .endpoints import (
     discounts_router,
     mcp_router,
     ai_router,
-    query_router
+    query_router,
+    bedrock_router
 )
 
 
@@ -50,6 +51,7 @@ class FinOpsAPI:
             - **AI Insights**: AI-powered cost recommendations
             - **MCP Integration**: Model Context Protocol support
             - **SQL Queries**: Execute custom SQL queries on cost data
+            - **AWS Bedrock Chatbot**: Advanced AI chatbot with knowledge base integration
             
             ## Data Sources
             - Local parquet files (preferred for cost savings)
@@ -92,6 +94,7 @@ class FinOpsAPI:
         app.include_router(mcp_router, prefix="/api/v1/finops", tags=["MCP Integration"])
         app.include_router(ai_router, prefix="/api/v1/finops", tags=["AI Recommendations"])
         app.include_router(query_router, prefix="/api/v1/finops", tags=["Query Engine"])
+        app.include_router(bedrock_router, prefix="/api/v1/finops", tags=["AWS Bedrock Chatbot"])
         
         # Add health check endpoint
         @app.get("/health", tags=["Health"])

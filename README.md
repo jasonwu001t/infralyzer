@@ -16,6 +16,9 @@
 - **🌐 Modern FastAPI**: Clean REST API with OpenAPI documentation
 - **📄 SQL File Execution**: Direct execution of .sql files and parquet queries
 - **🤖 AI-Powered Insights**: Natural language queries and ML-based recommendations
+- **🧠 AWS Bedrock Integration**: Advanced chatbot with knowledge base support
+- **💬 Structured Query Generation**: Convert natural language to optimized SQL
+- **📚 Knowledge Base Management**: CUR-specific AI context and citations
 - **⚡ High Performance**: Optimized for large-scale cost data analysis
 - **🎯 Production Ready**: Comprehensive error handling, logging, and monitoring
 
@@ -23,56 +26,267 @@
 
 ### System Design
 
-Infralyzer follows a clean, modern architecture with clear data flow:
+Infralyzer follows a layered, modern architecture with comprehensive AI integration:
 
-**📈 Simple Flow:** AWS S3 → DataManager → Query Engines → FinOpsEngine → Analytics/API
+**📈 Complete Flow:** AWS S3 → Data Management → Query Engines → FinOps Engine → Analytics → AI/API → Frontend
+
+### 🏛️ Detailed Architecture
+
+The system is built with clear separation of concerns across multiple layers:
+
+```mermaid
+graph LR
+    subgraph "Data Sources"
+        A[AWS S3<br/>CUR Data]
+        B[Local Cache<br/>Parquet Files]
+        C[AWS APIs<br/>Pricing Data]
+    end
+
+    subgraph "Data Layer"
+        D[Data Manager]
+        E[S3 Data Manager]
+        F[Local Data Manager]
+        G[API Data Manager]
+    end
+
+    subgraph "Processing Layer"
+        H[Query Engine Factory]
+        I[DuckDB Engine<br/>⚡ Fast Analytics]
+        J[Polars Engine<br/>🔄 Modern DataFrames]
+        K[Athena Engine<br/>☁️ Serverless Scale]
+    end
+
+    subgraph "Core Layer"
+        L[FinOps Engine<br/>🎯 Main Interface]
+        M[Configuration<br/>⚙️ DataConfig]
+    end
+
+    subgraph "Analytics Layer"
+        N[KPI Analytics<br/>📊 Dashboards]
+        O[Spend Analytics<br/>💰 Cost Tracking]
+        P[Optimization<br/>🔍 Recommendations]
+        Q[AI Recommendations<br/>🤖 ML Insights]
+    end
+
+    subgraph "AI Layer"
+        R[Bedrock Handler<br/>🧠 AI Integration]
+        S[Knowledge Base<br/>📚 CUR Context]
+        T[Query Generation<br/>💬 NL to SQL]
+    end
+
+    subgraph "API Layer"
+        U[FastAPI App<br/>🌐 REST API]
+        V[Authentication<br/>🔐 Security]
+        W[Endpoints<br/>📡 Routes]
+    end
+
+    subgraph "Output Layer"
+        X[JSON/CSV/Arrow<br/>📄 Data Formats]
+        Y[Visualizations<br/>📈 Charts]
+        Z[AI Chat<br/>💬 Conversations]
+    end
+
+    A --> D
+    B --> D
+    C --> D
+
+    D --> E
+    D --> F
+    D --> G
+
+    E --> H
+    F --> H
+    G --> H
+
+    H --> I
+    H --> J
+    H --> K
+
+    I --> L
+    J --> L
+    K --> L
+    M --> L
+
+    L --> N
+    L --> O
+    L --> P
+    L --> Q
+    L --> R
+
+    R --> S
+    R --> T
+
+    N --> U
+    O --> U
+    P --> U
+    Q --> U
+    R --> U
+
+    U --> V
+    U --> W
+
+    W --> X
+    W --> Y
+    W --> Z
+
+    classDef sourceLayer fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef dataLayer fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef processLayer fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef coreLayer fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef analyticsLayer fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef aiLayer fill:#f1f8e9,stroke:#33691e,stroke-width:2px
+    classDef apiLayer fill:#e0f2f1,stroke:#00695c,stroke-width:2px
+    classDef outputLayer fill:#f8e0f8,stroke:#6a1b9a,stroke-width:2px
+
+    class A,B,C sourceLayer
+    class D,E,F,G dataLayer
+    class H,I,J,K processLayer
+    class L,M coreLayer
+    class N,O,P,Q analyticsLayer
+    class R,S,T aiLayer
+    class U,V,W apiLayer
+    class X,Y,Z outputLayer
+```
+
+### 🧠 AI-Powered Query Flow
+
+The new Bedrock integration provides sophisticated AI capabilities:
 
 ```mermaid
 graph TB
-    %% Data Sources
-    S3[("☁️ AWS S3<br/>CUR Data")]
-    API[("💰 AWS APIs<br/>Pricing & Savings")]
+    subgraph "Request Flow"
+        Client[Client Application]
+        API[FastAPI Router]
+        Auth[Authentication Layer]
+    end
 
-    %% Core Components
-    CONFIG["🔧 DataConfig<br/>Configuration"]
-    DATA_MGR["💾 DataManager<br/>S3 & Local Cache"]
-    AUTH["🔐 AWS Auth<br/>Credentials"]
+    subgraph "Bedrock Integration Layer"
+        BH[Bedrock Handler]
+        MC[Model Configuration]
+        KB[Knowledge Base Manager]
+    end
 
-    %% Query Engines
-    ENGINES["🧠 Query Engines<br/>DuckDB | Polars | Athena"]
+    subgraph "AI Model Services"
+        Claude[Claude 3.5 Sonnet<br/>Complex Reasoning]
+        Haiku[Claude 3 Haiku<br/>Fast Queries]
+        Titan[Amazon Titan<br/>Cost Effective]
+        Cohere[Cohere Command<br/>Conversations]
+        Llama[Meta Llama<br/>Open Source]
+    end
 
-    %% Main Interface
-    FINOPS["🎯 FinOpsEngine<br/>Main Interface"]
+    subgraph "Knowledge Base System"
+        S3KB[S3 Knowledge Data]
+        Embed[Vector Embeddings]
+        Search[Vector Search]
+        Citation[Source Citations]
+    end
 
-    %% Analytics & API
-    ANALYTICS["📊 Analytics Modules<br/>KPI | Spend | Optimization"]
-    FASTAPI["🌐 FastAPI<br/>REST Endpoints"]
+    subgraph "Query Generation"
+        NLP[Natural Language<br/>Processing]
+        SQLGen[SQL Generation]
+        Validation[Query Validation]
+        Optimize[Query Optimization]
+    end
 
-    %% Utilities
-    UTILS["🛠️ Utilities<br/>Formatters | Validators"]
-    LOCAL[("💿 Local Cache<br/>Cost Savings")]
+    subgraph "Execution Engine"
+        QueryEngine[Query Engines<br/>DuckDB/Polars/Athena]
+        CURData[CUR Data]
+        Results[Query Results]
+    end
 
-    %% Connections
-    S3 --> DATA_MGR
-    API --> DATA_MGR
-    CONFIG --> ENGINES
-    AUTH --> ENGINES
-    DATA_MGR --> LOCAL
-    DATA_MGR --> ENGINES
-    ENGINES --> FINOPS
-    FINOPS --> ANALYTICS
-    FINOPS --> FASTAPI
-    UTILS --> FINOPS
+    subgraph "Response Processing"
+        Format[Result Formatting]
+        Viz[Visualization Metadata]
+        Struct[Structured Response]
+    end
+
+    Client --> API
+    API --> Auth
+    Auth --> BH
+
+    BH --> MC
+    BH --> KB
+    BH --> NLP
+
+    MC --> Claude
+    MC --> Haiku
+    MC --> Titan
+    MC --> Cohere
+    MC --> Llama
+
+    KB --> S3KB
+    KB --> Embed
+    KB --> Search
+    KB --> Citation
+
+    NLP --> SQLGen
+    SQLGen --> Validation
+    Validation --> Optimize
+
+    Optimize --> QueryEngine
+    QueryEngine --> CURData
+    CURData --> Results
+
+    Results --> Format
+    Format --> Viz
+    Viz --> Struct
+
+    Struct --> Client
+
+    Claude --> SQLGen
+    Haiku --> SQLGen
+    Titan --> SQLGen
+
+    Search --> Citation
+    Citation --> Struct
+
+    classDef requestLayer fill:#e3f2fd
+    classDef bedrockLayer fill:#f3e5f5
+    classDef modelLayer fill:#fff3e0
+    classDef kbLayer fill:#e8f5e8
+    classDef queryLayer fill:#fce4ec
+    classDef engineLayer fill:#f1f8e9
+    classDef responseLayer fill:#e0f2f1
+
+    class Client,API,Auth requestLayer
+    class BH,MC,KB bedrockLayer
+    class Claude,Haiku,Titan,Cohere,Llama modelLayer
+    class S3KB,Embed,Search,Citation kbLayer
+    class NLP,SQLGen,Validation,Optimize queryLayer
+    class QueryEngine,CURData,Results engineLayer
+    class Format,Viz,Struct responseLayer
 ```
 
 ### 🎯 Key Components
+
+#### Core Infrastructure
 
 - **🔧 DataConfig**: Central configuration for S3, local paths, and AWS settings
 - **💾 DataManager**: Handles S3 discovery, local caching, and data synchronization
 - **🧠 Query Engines**: Choose between DuckDB (fast), Polars (modern), or Athena (scale)
 - **🎯 FinOpsEngine**: Your main interface - handles all queries and analytics
-- **📊 Analytics**: 7 specialized modules for KPI, spend, optimization insights
+
+#### Analytics Modules
+
+- **📊 KPI Analytics**: Real-time cost metrics and dashboard data
+- **💰 Spend Analytics**: Cost tracking, trends, and invoice analysis
+- **🔍 Optimization Analytics**: Resource optimization and rightsizing
+- **🏷️ Allocation Analytics**: Tag-based cost allocation and chargeback
+- **💳 Discount Analytics**: Savings plans, reserved instances, and discounts
+- **🤖 AI Analytics**: Machine learning insights and anomaly detection
+
+#### AI & Chatbot Layer
+
+- **🧠 Bedrock Handler**: AWS Bedrock integration and model management
+- **📚 Knowledge Base**: CUR-specific context with vector search capabilities
+- **💬 Query Generation**: Natural language to SQL conversion
+- **🎯 Model Configuration**: Support for Claude, Titan, Cohere, and Llama models
+
+#### API & Integration
+
 - **🌐 FastAPI**: Production REST API with OpenAPI documentation
+- **🔐 Authentication**: JWT and role-based access control
+- **📡 Endpoints**: Comprehensive API coverage for all features
 
 ### 🚀 Usage Flow
 
@@ -163,12 +377,28 @@ curl -X POST "http://localhost:8000/api/v1/finops/query" \
     "output_format": "json"
   }'
 
-# Natural language queries
+# Natural language queries (MCP)
 curl -X POST "http://localhost:8000/api/v1/finops/mcp/query" \
   -H "Content-Type: application/json" \
   -d '{
     "query": "What are my top 5 services by cost this month?",
     "query_type": "natural_language"
+  }'
+
+# AI-powered query generation (NEW!)
+curl -X POST "http://localhost:8000/api/v1/finops/bedrock/generate-query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_query": "Show me EC2 costs by region for the last 6 months"
+  }'
+
+# AI chatbot with knowledge base (NEW!)
+curl -X POST "http://localhost:8000/api/v1/finops/bedrock/chat" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Analyze my cost trends and suggest optimizations",
+    "knowledge_base_id": "kb-12345",
+    "include_sources": true
   }'
 ```
 
@@ -208,7 +438,63 @@ json_data = engine.query_json("SELECT * FROM CUR LIMIT 10")
 csv_data = engine.query_csv("SELECT * FROM CUR LIMIT 10")
 ```
 
-### 3. 📊 Comprehensive Analytics
+### 3. 🧠 AWS Bedrock AI Integration (NEW!)
+
+Transform cost analysis with advanced AI capabilities:
+
+```python
+from infralyzer.utils.bedrock_handler import BedrockHandler, BedrockModel, ModelConfiguration
+
+# Initialize Bedrock handler
+bedrock = BedrockHandler(config, default_model=BedrockModel.CLAUDE_3_5_SONNET)
+
+# List available AI models
+models = bedrock.list_available_models()
+print(f"Available models: {len(models)}")
+
+# Generate structured queries from natural language
+query_result = bedrock.generate_cur_structured_query(
+    user_query="What are my top 5 most expensive services this month?",
+    model_config=ModelConfiguration(
+        model_id=BedrockModel.CLAUDE_3_5_SONNET,
+        temperature=0.1,
+        max_tokens=4096
+    )
+)
+
+# Extract the generated SQL and metadata
+structured_query = query_result['structured_query']
+sql_query = structured_query['sql_query']
+chart_type = structured_query['visualization_type']
+title = structured_query['title']
+
+print(f"Generated SQL: {sql_query}")
+print(f"Visualization: {chart_type}")
+print(f"Confidence: {query_result['confidence']}")
+
+# Execute the AI-generated query
+results = engine.query(sql_query)
+
+# Create knowledge base for CUR data
+kb_result = bedrock.create_cur_knowledge_base(
+    s3_bucket="your-cur-bucket",
+    s3_prefix="cur2/data",
+    role_arn="arn:aws:iam::123456789012:role/BedrockRole",
+    name="CUR-FinOps-Knowledge"
+)
+
+# Chat with AI using knowledge base context
+chat_response = bedrock.chat_with_knowledge_base(
+    message="Analyze my EC2 costs and suggest optimizations",
+    knowledge_base_id=kb_result['knowledge_base_id'],
+    conversation_id="cost-analysis-session"
+)
+
+print(f"AI Response: {chat_response['response']}")
+print(f"Knowledge Sources: {len(chat_response['knowledge_sources'])}")
+```
+
+### 4. 📊 Comprehensive Analytics
 
 Access specialized FinOps analytics:
 
@@ -236,9 +522,27 @@ discount_data = engine.discounts.get_current_agreements()
 # AI Insights
 ai_insights = engine.ai.get_anomaly_detection()
 # Returns: cost anomalies, forecasting, recommendations
+
+# AWS Bedrock Chatbot (NEW!)
+from infralyzer.utils.bedrock_handler import BedrockHandler, BedrockModel
+
+bedrock = BedrockHandler(config, default_model=BedrockModel.CLAUDE_3_5_SONNET)
+
+# Generate structured queries from natural language
+query_result = bedrock.generate_cur_structured_query(
+    "What are my top 5 most expensive services this month?"
+)
+# Returns: Optimized SQL, visualization metadata, confidence scores
+
+# Chat with knowledge base
+chat_response = bedrock.chat_with_knowledge_base(
+    message="Analyze my EC2 costs and suggest optimizations",
+    knowledge_base_id="kb-12345"
+)
+# Returns: AI response with CUR data context and citations
 ```
 
-### 4. 🌐 Production-Ready API
+### 5. 🌐 Production-Ready API
 
 Access everything via REST endpoints:
 
@@ -250,7 +554,89 @@ Access everything via REST endpoints:
 | `/api/v1/finops/spend/invoice/summary`       | GET    | Spend analysis                      |
 | `/api/v1/finops/optimization/idle-resources` | GET    | Cost optimization                   |
 | `/api/v1/finops/ai/anomaly-detection`        | GET    | AI insights                         |
+| **AWS Bedrock Endpoints (NEW!)**             |        |                                     |
+| `/api/v1/finops/bedrock/models`              | GET    | List available AI models            |
+| `/api/v1/finops/bedrock/generate-query`      | POST   | Natural language to SQL conversion  |
+| `/api/v1/finops/bedrock/chat`                | POST   | AI chatbot with knowledge base      |
+| `/api/v1/finops/bedrock/knowledge-base`      | POST   | Create/manage knowledge bases       |
+| `/api/v1/finops/bedrock/knowledge-bases`     | GET    | List knowledge bases                |
 | `/docs`                                      | GET    | Interactive API documentation       |
+
+## 🎯 Data Flow & Use Cases
+
+### Real-World Usage Patterns
+
+The system supports various data flow patterns for different use cases:
+
+```mermaid
+graph TB
+    subgraph "Frontend Applications"
+        Dashboard["Cost Dashboard<br/>📊 React/Vue"]
+        Mobile["Mobile App<br/>📱 React Native"]
+        CLI["CLI Tools<br/>⚡ Command Line"]
+        BI["BI Tools<br/>📈 Tableau/PowerBI"]
+    end
+
+    subgraph "Use Case 1: Real-time Cost Analysis"
+        UC1_Start["User Query:<br/>Show monthly trends"]
+        UC1_API["FastAPI Endpoint"]
+        UC1_Engine["DuckDB Engine<br/>Fast Processing"]
+        UC1_Cache["Local Cache<br/>Instant Results"]
+        UC1_Viz["Chart Generation<br/>Line Chart"]
+    end
+
+    subgraph "Use Case 2: AI-Powered Insights"
+        UC2_Start["Natural Language:<br/>What is driving my costs"]
+        UC2_Bedrock["Bedrock Handler"]
+        UC2_Model["Claude 3.5 Sonnet<br/>Complex Reasoning"]
+        UC2_KB["Knowledge Base<br/>CUR Context"]
+        UC2_SQL["Generated SQL<br/>Optimized Query"]
+        UC2_Results["Structured Response<br/>Insights + Citations"]
+    end
+
+    subgraph "Use Case 3: Enterprise Analytics"
+        UC3_Start["Scheduled Report:<br/>Monthly Analysis"]
+        UC3_Athena["Athena Engine<br/>Serverless Scale"]
+        UC3_S3["S3 Data Source<br/>Massive Datasets"]
+        UC3_Export["Export Manager<br/>CSV/JSON/Arrow"]
+        UC3_Delivery["Report Delivery<br/>Email/Slack/S3"]
+    end
+
+    Dashboard --> UC1_Start
+    Mobile --> UC2_Start
+    CLI --> UC3_Start
+    BI --> UC1_API
+
+    UC1_Start --> UC1_API
+    UC1_API --> UC1_Engine
+    UC1_Engine --> UC1_Cache
+    UC1_Cache --> UC1_Viz
+    UC1_Viz --> Dashboard
+
+    UC2_Start --> UC2_Bedrock
+    UC2_Bedrock --> UC2_Model
+    UC2_Bedrock --> UC2_KB
+    UC2_Model --> UC2_SQL
+    UC2_KB --> UC2_Results
+    UC2_SQL --> UC2_Results
+    UC2_Results --> Mobile
+
+    UC3_Start --> UC3_Athena
+    UC3_Athena --> UC3_S3
+    UC3_S3 --> UC3_Export
+    UC3_Export --> UC3_Delivery
+    UC3_Delivery --> CLI
+
+    classDef frontend fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef usecase1 fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px
+    classDef usecase2 fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef usecase3 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+
+    class Dashboard,Mobile,CLI,BI frontend
+    class UC1_Start,UC1_API,UC1_Engine,UC1_Cache,UC1_Viz usecase1
+    class UC2_Start,UC2_Bedrock,UC2_Model,UC2_KB,UC2_SQL,UC2_Results usecase2
+    class UC3_Start,UC3_Athena,UC3_S3,UC3_Export,UC3_Delivery usecase3
+```
 
 ## 💾 Data Caching Strategy
 

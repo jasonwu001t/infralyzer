@@ -2,16 +2,16 @@
 
 ## 🎯 Product Overview
 
-**Infralyzer** is a comprehensive AWS cost analytics platform designed for modern FinOps teams. It provides multi-engine SQL capabilities, intelligent data caching, and production-ready APIs for analyzing AWS Cost and Usage Reports (CUR) at scale.
+**Infralyzer** is a comprehensive AWS cost analytics platform designed for modern FinOps teams. It provides multi-engine SQL capabilities, intelligent data caching, production-ready APIs, and advanced AI-powered insights through AWS Bedrock integration for analyzing AWS Cost and Usage Reports (CUR) at scale.
 
 ## 🏗️ Core Architecture
 
 ### Modern, Layered Design
 
-Infralyzer follows a sophisticated multi-layer architecture optimized for performance, maintainability, and scalability:
+Infralyzer follows a sophisticated multi-layer architecture optimized for performance, maintainability, scalability, and AI-powered insights:
 
 ```
-📂 Data Sources → 🔧 Configuration → 💾 Data Management → 🧠 Query Engines → 🎯 Unified Interface → 📊 Analytics → 🌐 API
+📂 Data Sources → 🔧 Configuration → 💾 Data Management → 🧠 Query Engines → 🎯 Unified Interface → 📊 Analytics → 🤖 AI Layer → 🌐 API
 ```
 
 ### Key Architectural Principles
@@ -21,6 +21,9 @@ Infralyzer follows a sophisticated multi-layer architecture optimized for perfor
 - **📈 Horizontal Scaling**: Designed for growing data volumes
 - **🛡️ Defensive Programming**: Comprehensive error handling and validation
 - **⚡ Performance First**: Optimized for large-scale cost data analysis
+- **🧠 AI-First Design**: Native integration with AWS Bedrock for intelligent insights
+- **💬 Conversational Interface**: Natural language query capabilities
+- **📚 Knowledge-Driven**: Context-aware responses with source attribution
 
 ## 🚀 Key Capabilities
 
@@ -41,14 +44,23 @@ Infralyzer follows a sophisticated multi-layer architecture optimized for perfor
 
 ### 3. Comprehensive Analytics
 
-| Module              | Purpose             | Key Metrics                               |
-| ------------------- | ------------------- | ----------------------------------------- |
-| **KPI Summary**     | Executive dashboard | Cost trends, service distribution         |
-| **Spend Analytics** | Cost visibility     | Monthly breakdowns, account analysis      |
-| **Optimization**    | Cost reduction      | Idle resources, rightsizing opportunities |
-| **Allocation**      | Cost attribution    | Tag-based allocation, chargebacks         |
-| **Discounts**       | Savings tracking    | RI utilization, savings plans             |
-| **AI Insights**     | ML-powered analysis | Anomaly detection, forecasting            |
+### 4. AI-Powered Insights (NEW!)
+
+- **🧠 AWS Bedrock Integration**: Native support for multiple AI models
+- **💬 Natural Language Queries**: Convert plain English to optimized SQL
+- **📚 Knowledge Base Management**: CUR-specific context and documentation
+- **🎯 Structured Query Generation**: Frontend-ready SQL with visualization metadata
+- **💡 Intelligent Recommendations**: AI-driven cost optimization suggestions
+
+| Module              | Purpose                 | Key Metrics                                  |
+| ------------------- | ----------------------- | -------------------------------------------- |
+| **🤖 AI Analytics** | **AI-Powered Insights** | **Natural language queries, ML forecasting** |
+| **KPI Summary**     | Executive dashboard     | Cost trends, service distribution            |
+| **Spend Analytics** | Cost visibility         | Monthly breakdowns, account analysis         |
+| **Optimization**    | Cost reduction          | Idle resources, rightsizing opportunities    |
+| **Allocation**      | Cost attribution        | Tag-based allocation, chargebacks            |
+| **Discounts**       | Savings tracking        | RI utilization, savings plans                |
+| **AI Insights**     | ML-powered analysis     | Anomaly detection, forecasting               |
 
 ### 4. Production-Ready API
 
