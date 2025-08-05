@@ -90,7 +90,7 @@ class S3DataManager:
                         partitions.append(partition_name)
             
             partitions.sort()
-            print(f"📅 Found {len(partitions)} partitions: {partitions[:5]}{'...' if len(partitions) > 5 else ''}")
+            print(f"Found {len(partitions)} partitions: {partitions[:5]}{'...' if len(partitions) > 5 else ''}")
             
             return partitions
             
@@ -126,7 +126,7 @@ class S3DataManager:
                 if self._is_date_in_range(partition_date):
                     target_partitions.append(partition)
         
-        print(f"📅 Target partitions: {target_partitions}")
+        print(f"Target partitions: {target_partitions}")
         return target_partitions
     
     def _is_date_in_range(self, partition_date: str) -> bool:

@@ -8,6 +8,7 @@ import os
 
 from ..finops_engine import FinOpsEngine
 from ..engine import DataConfig, DataExportType
+from .dependencies import get_finops_engine
 from .endpoints import (
     kpi_router,
     spend_router,
@@ -16,7 +17,7 @@ from .endpoints import (
     discounts_router,
     mcp_router,
     ai_router,
-    sql_router
+    query_router
 )
 
 
@@ -55,11 +56,12 @@ class FinOpsAPI:
             - S3 parquet files (fallback)
             - Powered by DuckDB SQL engine
             
-            ## SQL Query Interface
-            - Execute custom SELECT queries on your AWS cost data
-            - Support for complex JOINs, aggregations, and analytics
-            - Access to main data tables and pre-built cost views
-            - JSON and CSV output formats
+            ## Query Engine Interface
+            - Execute SQL queries, SQL files, and query parquet files directly
+            - Multi-engine support (DuckDB, Polars, Athena)
+            - Multiple output formats (JSON, CSV, DataFrame)
+            - Natural language queries via MCP integration
+            - Comprehensive query examples and documentation
             
             ## Authentication
             JWT/API key based authentication with role-based access control.
@@ -89,7 +91,7 @@ class FinOpsAPI:
         app.include_router(discounts_router, prefix="/api/v1/finops", tags=["Discounts"])
         app.include_router(mcp_router, prefix="/api/v1/finops", tags=["MCP Integration"])
         app.include_router(ai_router, prefix="/api/v1/finops", tags=["AI Recommendations"])
-        app.include_router(sql_router, prefix="/api/v1/finops", tags=["SQL Queries"])
+        app.include_router(query_router, prefix="/api/v1/finops", tags=["Query Engine"])
         
         # Add health check endpoint
         @app.get("/health", tags=["Health"])
@@ -117,11 +119,7 @@ class FinOpsAPI:
         return app
 
 
-# Dependency injection for FinOps engine
-def get_finops_engine() -> FinOpsEngine:
-    """Dependency to get FinOps engine instance."""
-    # This will be overridden by the app instance
-    raise HTTPException(status_code=500, detail="FinOps engine not configured")
+# Note: get_finops_engine dependency function is now in dependencies.py
 
 
 def create_finops_app(

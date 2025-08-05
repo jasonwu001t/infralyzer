@@ -156,7 +156,7 @@ def test_sql_api_interface():
         engine = FinOpsEngine(config)
         
         # Test schema retrieval
-        print("📋 Testing schema retrieval...")
+        print("Testing schema retrieval...")
         schema = engine.schema()
         print(f"Schema retrieved: {len(schema)} columns")
         print(f"Sample columns: {list(schema.keys())[:5]}...")
@@ -287,22 +287,22 @@ def test_advanced_sql_scenarios():
             print(f"Description: {query_test['description']}")
             
             try:
-                            result = engine.query(query_test['sql'])  # Returns List[Dict] by default
-            print(f"Advanced query executed successfully!")
-            num_cols = len(result[0].keys()) if result else 0
-            print(f"Results: {len(result)} rows × {num_cols} columns")
-            
-            # Save detailed results for analysis
-            if len(result) > 0:
-                output_file = f"advanced_query_{i}_results.json"
-                try:
-                    # result is already a list of dicts, no conversion needed
-                    with open(output_file, 'w') as f:
-                        json.dump(result, f, indent=2, default=str)
-                    print(f"Detailed results saved to: {output_file}")
-                except Exception:
-                    print(f" Could not save results to JSON (complex data types)")
+                result = engine.query(query_test['sql'])  # Returns List[Dict] by default
+                print(f"Advanced query executed successfully!")
+                num_cols = len(result[0].keys()) if result else 0
+                print(f"Results: {len(result)} rows × {num_cols} columns")
                 
+                # Save detailed results for analysis
+                if len(result) > 0:
+                    output_file = f"advanced_query_{i}_results.json"
+                    try:
+                        # result is already a list of dicts, no conversion needed
+                        with open(output_file, 'w') as f:
+                            json.dump(result, f, indent=2, default=str)
+                        print(f"Detailed results saved to: {output_file}")
+                    except Exception:
+                        print(f"Could not save results to JSON (complex data types)")
+                        
             except Exception as e:
                 print(f"Advanced query failed: {e}")
         

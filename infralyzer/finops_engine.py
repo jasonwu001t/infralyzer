@@ -1,7 +1,7 @@
 """
 Unified FinOps Engine - Main interface for all cost analytics functionality
 """
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional, Union, List
 
 from .engine import (
     BaseQueryEngine, 
@@ -125,7 +125,7 @@ class FinOpsEngine:
     def query(self, 
               sql_or_file: str, 
               force_s3: bool = False,
-              format: QueryResultFormat = QueryResultFormat.RECORDS):
+              format: QueryResultFormat = QueryResultFormat.DATAFRAME):
         """
         Execute SQL query using the configured query engine.
         
@@ -384,3 +384,82 @@ class FinOpsEngine:
             **kwargs
         )
         return cls(config)
+    
+    # Convenience methods for easy format switching
+    def query_json(self, sql_or_file: str, force_s3: bool = False) -> List[Dict[str, Any]]:
+        """
+        Execute SQL query and return JSON-like records (List[Dict]).
+        
+        Perfect for API responses, JSON export, and programmatic processing.
+        
+        Args:
+            sql_or_file: SQL query string or path to .sql file
+            force_s3: Force using S3 data even if local data is available
+            
+        Returns:
+            List[Dict]: JSON-serializable records
+            
+        Example:
+            >>> records = engine.query_json("SELECT * FROM CUR LIMIT 5")
+            >>> print(json.dumps(records, indent=2))
+        """
+        return self.query(sql_or_file, force_s3=force_s3, format=QueryResultFormat.RECORDS)
+    
+    def query_csv(self, sql_or_file: str, force_s3: bool = False) -> str:
+        """
+        Execute SQL query and return CSV string.
+        
+        Perfect for file export, data transfer, and spreadsheet import.
+        
+        Args:
+            sql_or_file: SQL query string or path to .sql file
+            force_s3: Force using S3 data even if local data is available
+            
+        Returns:
+            str: CSV-formatted string
+            
+        Example:
+            >>> csv_data = engine.query_csv("SELECT * FROM CUR LIMIT 100")
+            >>> with open("cost_data.csv", "w") as f:
+            ...     f.write(csv_data)
+        """
+        return self.query(sql_or_file, force_s3=force_s3, format=QueryResultFormat.CSV)
+    
+    def query_arrow(self, sql_or_file: str, force_s3: bool = False):
+        """
+        Execute SQL query and return PyArrow table.
+        
+        Perfect for high-performance analytics and cross-language compatibility.
+        
+        Args:
+            sql_or_file: SQL query string or path to .sql file
+            force_s3: Force using S3 data even if local data is available
+            
+        Returns:
+            pyarrow.Table: High-performance columnar data
+            
+        Example:
+            >>> arrow_table = engine.query_arrow("SELECT * FROM CUR")
+            >>> # Convert to pandas for analysis
+            >>> df = arrow_table.to_pandas()
+        """
+        return self.query(sql_or_file, force_s3=force_s3, format=QueryResultFormat.ARROW)
+    
+    def query_raw(self, sql_or_file: str, force_s3: bool = False):
+        """
+        Execute SQL query and return engine-specific raw format.
+        
+        Perfect for maximum performance and engine-specific operations.
+        
+        Args:
+            sql_or_file: SQL query string or path to .sql file
+            force_s3: Force using S3 data even if local data is available
+            
+        Returns:
+            Engine-specific format (DuckDB result, Polars DataFrame, etc.)
+            
+        Example:
+            >>> raw_result = engine.query_raw("SELECT * FROM CUR")
+            >>> # Engine-specific operations on raw result
+        """
+        return self.query(sql_or_file, force_s3=force_s3, format=QueryResultFormat.RAW)

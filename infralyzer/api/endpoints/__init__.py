@@ -9,7 +9,7 @@ from .allocation_endpoints import router as allocation_router
 from .discounts_endpoints import router as discounts_router
 from .mcp_endpoints import router as mcp_router
 from .ai_endpoints import router as ai_router
-from .sql_endpoints import router as sql_router
+from .query_endpoints import router as query_router
 
 __all__ = [
     "kpi_router",
@@ -19,5 +19,5 @@ __all__ = [
     "discounts_router",
     "mcp_router",
     "ai_router",
-    "sql_router"
+    "query_router"
 ]

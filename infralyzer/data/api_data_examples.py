@@ -263,7 +263,7 @@ class ApiDataExamples:
                 
                 # Show sample results
                 if len(result_df) > 0:
-                    print(f"📋 Sample results for {analysis_name}:")
+                    print(f"Sample results for {analysis_name}:")
                     print(result_df.head(3))
                     
             except Exception as e:

@@ -22,11 +22,16 @@ def test_download_local():
     # Configuration for local storage
     local_path = "./test_local_data"
     config = DataConfig(
-        s3_bucket='billing-data-exports-cur',          
-        s3_data_prefix='cur2/cur2/data',            
-        data_export_type=DataExportType.CUR_2_0,   
+        s3_bucket= 'cid-014498620306-data-local',  
+        s3_data_prefix='cur2/014498620306/cid-cur2/data',
+        data_export_type=DataExportType.CUR_2_0,               
         table_name='CUR',                        
-        date_start='2024-06',                    
+        date_start='2024-07',      
+        # s3_bucket='billing-data-exports-cur',          
+        # s3_data_prefix='cur2/cur2/data',            
+        # data_export_type=DataExportType.CUR_2_0,   
+        # table_name='CUR',                        
+        # date_start='2024-06',                    
         date_end='2025-07',
         local_data_path=local_path,
         prefer_local_data=True

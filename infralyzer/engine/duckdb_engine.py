@@ -181,7 +181,7 @@ class DuckDBEngine(BaseQueryEngine):
     
     def query(self, 
               sql: str, 
-              format: QueryResultFormat = QueryResultFormat.RECORDS,
+              format: QueryResultFormat = QueryResultFormat.DATAFRAME,
               force_s3: bool = False) -> Union[List[Dict[str, Any]], pd.DataFrame, str, pa.Table]:
         """
         Execute SQL query and return results in specified format - NO POLARS CONVERSION.

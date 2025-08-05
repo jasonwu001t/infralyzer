@@ -124,7 +124,7 @@ def main():
     print(f" Using {data_source_desc} data source")
     print(f" Data Export Type: {config.data_export_type.value}")
     print(f"Partition Format: BILLING_PERIOD=YYYY-MM (monthly)")
-    print(f"📅 Date Format Required: YYYY-MM (e.g., '2025-07')")
+    print(f"Date Format Required: YYYY-MM (e.g., '2025-07')")
     print(f"📂 Data Path: s3://{config.s3_bucket}/{config.s3_data_prefix}")
     print(f"Local Cache: {config.local_bucket_path}")
     print(f"Prefer Local: {config.prefer_local_data}")
@@ -234,7 +234,7 @@ def main():
         kpi_sql_cleaned = '\n'.join(cleaned_lines)
         
         print(f"Executing kpi_tracker query with {len(successful_views)} prerequisite views...")
-        print(f"🔗 Available views: {', '.join(successful_views)}")
+        print(f"Available views: {', '.join(successful_views)}")
         
         # Fix the original kpi_tracker.sql for DuckDB compatibility
         print("Fixing original kpi_tracker.sql for DuckDB compatibility...")
@@ -399,7 +399,7 @@ def main():
             print(f"\nKey Metrics Summary:")
             print(f"   Total Spend: ${json_response['overall_spend']['spend_all_cost']:.2f}")
             print(f"   Potential Savings: ${json_response['savings_summary']['total_potential_savings']:.2f}")
-            print(f"   📅 Billing Period: {json_response['overall_spend']['billing_period']}")
+            print(f"   Billing Period: {json_response['overall_spend']['billing_period']}")
             print(f"    EC2 Cost: ${json_response['ec2_metrics']['ec2_all_cost']:.2f}")
             print(f"   Storage Cost: ${json_response['storage_metrics']['ebs_all_cost']:.2f}")
             

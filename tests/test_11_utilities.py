@@ -77,7 +77,7 @@ def test_utilities():
         print("Number formatting completed")
         
         # Test 3: Date Formatter
-        print("\n📅 Step 3: Date Formatter")
+        print("\nStep 3: Date Formatter")
         print("-" * 40)
         
         date_formatter = DateFormatter()

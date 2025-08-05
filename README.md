@@ -1,1147 +1,716 @@
-# DE-Polars: FinOps Cost Analytics
+# Infralyzer: Modern FinOps Cost Analytics Platform
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
 [![DuckDB](https://img.shields.io/badge/DuckDB-SQL%20Engine-orange.svg)](https://duckdb.org/)
+[![Polars](https://img.shields.io/badge/Polars-DataFrame-blue.svg)](https://pola.rs/)
+[![AWS Athena](https://img.shields.io/badge/AWS-Athena-orange.svg)](https://aws.amazon.com/athena/)
 
-SQL analysis of AWS Cost and Usage Reports (CUR) with local data caching to reduce S3 query costs. Modular architecture with FastAPI deployment support.
+**Modern AWS Cost Analytics Platform** with multi-engine SQL support, local data caching, and comprehensive FinOps insights.
 
-## Key Features
+## 🚀 Key Features
 
-- **Query Engine**: SQL strings, SQL files, parquet files, and multi-source data aggregation
-- **SQL Analytics**: DuckDB engine with window functions, CTEs, and joins
-- **Local Data Caching**: Download S3 data locally to reduce S3 query costs (90%+ reduction)
-- **Modular Architecture**: Independent analytics modules
-- **FastAPI Integration**: REST API with OpenAPI docs
-- **AI Insights**: ML-based anomaly detection and optimization
-- **Analytics**: KPI dashboards and cost optimization recommendations
-- **Backward Compatible**: Existing DataExportsPolars code works unchanged
-- **Utilities**: Formatters, validators, performance monitoring, export tools
-- **API Data Sources**: AWS Pricing API and SavingsPlans API integration
+- **🔍 Multi-Engine Query Support**: DuckDB, Polars, and AWS Athena engines
+- **📊 Comprehensive Analytics**: KPI dashboards, spend analysis, optimization insights
+- **💾 Smart Data Caching**: Download S3 data locally to reduce costs by 90%+
+- **🌐 Modern FastAPI**: Clean REST API with OpenAPI documentation
+- **📄 SQL File Execution**: Direct execution of .sql files and parquet queries
+- **🤖 AI-Powered Insights**: Natural language queries and ML-based recommendations
+- **⚡ High Performance**: Optimized for large-scale cost data analysis
+- **🎯 Production Ready**: Comprehensive error handling, logging, and monitoring
 
-## Architecture
+## 🏗️ Architecture Overview
 
 ### System Design
 
-Modular architecture with layered components:
+Infralyzer follows a modern, layered architecture designed for scalability and maintainability:
 
 ```mermaid
 graph TB
-    %% External Data Sources
-    S3[("AWS S3<br/>Cost Data Exports")]
-    CUR[("CUR 2.0<br/>Cost & Usage Reports")]
-    FOCUS[("FOCUS 1.0<br/>FinOps Cost Data")]
-
-    %% Configuration Layer
-    subgraph Config ["🔧 Configuration Layer"]
-        DC[DataConfig]
-        DET[DataExportType]
+    %% === DATA SOURCES ===
+    subgraph DataSources ["📂 Data Sources"]
+        S3[("☁️ AWS S3<br/>Cost Data Exports")]
+        CUR[("📊 CUR 2.0<br/>Cost & Usage Reports")]
+        FOCUS[("🎯 FOCUS 1.0<br/>FinOps Standard")]
+        PRICING[("💰 AWS Pricing API<br/>Real-time Pricing")]
+        SAVINGS[("💳 Savings Plans API<br/>Discount Data")]
     end
 
-    %% Data Management Layer
+    %% === CONFIGURATION LAYER ===
+    subgraph ConfigLayer ["🔧 Configuration Layer"]
+        DC[DataConfig<br/>📋 Central Configuration]
+        DET[DataExportType<br/>🏷️ CUR/FOCUS/COH Types]
+        VALIDATOR[ConfigValidator<br/>✅ Validation Logic]
+    end
+
+    %% === DATA MANAGEMENT LAYER ===
     subgraph DataMgmt ["💾 Data Management Layer"]
-        S3DM[S3DataManager<br/>📡 Discover & Access]
-        LDM[LocalDataManager<br/>💿 Cache Management]
-        DD[DataDownloader<br/>⬇️ S3 to Local]
-        PAM[PricingApiManager<br/>💰 AWS Pricing API]
-        SPAM[SavingsPlansApiManager<br/>💳 Savings Plans API]
+        S3MGR[S3DataManager<br/>📡 S3 Discovery & Access]
+        LOCALMGR[LocalDataManager<br/>💿 Local Cache]
+        DOWNLOADER[DataDownloader<br/>⬇️ S3 → Local Sync]
+        PRICEMGR[PricingApiManager<br/>💰 Real-time Pricing]
+        SAVINGSMGR[SavingsApiManager<br/>💳 Discount Management]
     end
 
-    %% Core Engine Layer
-    subgraph Engine ["🧠 Core Engine Layer"]
-        DUCK[DuckDBEngine<br/>🦆 SQL Execution]
-        AUTH[AWS Authentication<br/>🔐 Credential Management]
+    %% === AUTHENTICATION LAYER ===
+    subgraph AuthLayer ["🔐 Authentication Layer"]
+        AWS_AUTH[AWS Authentication<br/>🔑 IAM/STS/Profiles]
+        CRED_CACHE[Credential Cache<br/>⏰ Token Management]
     end
 
-    %% Interface Layer
-    subgraph Interface ["🎯 Interface Layer"]
-        FINOPS[FinOpsEngine<br/>🚀 Unified Interface]
-        DEP[DataExportsPolars<br/>🔄 Backward Compatible]
+    %% === QUERY ENGINES ===
+    subgraph QueryEngines ["🧠 Query Engine Layer"]
+        DUCKDB[DuckDBEngine<br/>🦆 Fast Analytics]
+        POLARS[PolarsEngine<br/>⚡ Modern DataFrames]
+        ATHENA[AthenaEngine<br/>☁️ Serverless Queries]
+        FACTORY[QueryEngineFactory<br/>🏭 Engine Selection]
     end
 
-    %% Analytics Layer
-    subgraph Analytics ["📊 Analytics Layer"]
+    %% === UNIFIED INTERFACE ===
+    subgraph Interface ["🎯 Unified Interface"]
+        FINOPS[FinOpsEngine<br/>🚀 Main Interface]
+        METHODS[query() / query_json() / query_csv()<br/>📝 Unified Query Methods]
+    end
+
+    %% === ANALYTICS MODULES ===
+    subgraph Analytics ["📊 Analytics Modules"]
         KPI[KPISummaryAnalytics<br/>⭐ Dashboard Metrics]
         SPEND[SpendAnalytics<br/>💰 Cost Visibility]
-        OPT[OptimizationAnalytics<br/>⚡ Cost Optimization]
-        ALLOC[AllocationAnalytics<br/>🏷️ Cost Allocation]
-        DISC[DiscountAnalytics<br/>💳 Discount Tracking]
-        AI[AIRecommendationAnalytics<br/>🤖 ML Insights]
-        MCP[MCPIntegrationAnalytics<br/>🔌 AI Assistant Protocol]
+        OPTIMIZATION[OptimizationAnalytics<br/>⚡ Cost Optimization]
+        ALLOCATION[AllocationAnalytics<br/>🏷️ Cost Allocation]
+        DISCOUNTS[DiscountAnalytics<br/>💳 Discount Tracking]
+        AI_ANALYTICS[AIAnalytics<br/>🤖 ML Insights]
+        MCP[MCPIntegration<br/>🔌 Natural Language]
     end
 
-    %% API Layer
-    subgraph API ["🌐 API Layer"]
-        FASTAPI[FastAPI Application<br/>🚀 REST API Server]
-        subgraph Endpoints ["API Endpoints"]
-            EP1[KPI Endpoints]
-            EP2[Spend Endpoints]
-            EP3[Optimization Endpoints]
-            EP4[Allocation Endpoints]
-            EP5[Discount Endpoints]
-            EP6[AI Endpoints]
-            EP7[MCP Endpoints]
-            EP8[SQL Query Endpoints]
+    %% === API LAYER ===
+    subgraph APILayer ["🌐 Modern API Layer"]
+        FASTAPI[FastAPI Application<br/>🚀 Production Server]
+        subgraph APIEndpoints ["API Endpoints"]
+            QUERY_EP[🔍 Query Engine<br/>POST /query]
+            MCP_EP[🤖 Natural Language<br/>POST /mcp/query]
+            KPI_EP[📊 KPI Dashboard<br/>GET /kpi/summary]
+            SPEND_EP[💰 Spend Analytics<br/>GET /spend/*]
+            OPT_EP[⚡ Optimization<br/>GET /optimization/*]
+            AI_EP[🤖 AI Insights<br/>GET /ai/*]
         end
+        DOCS[📚 OpenAPI Docs<br/>🌐 /docs & /redoc]
     end
 
-    %% Utilities Layer
-    subgraph Utils ["🛠️ Utilities Layer"]
-        FMT[Formatters<br/>💱 Currency, Number, Date]
-        VAL[Validators<br/>✅ Data Quality & Config]
-        PERF[Performance<br/>⏱️ Query Profiler & Cache]
-        EXP[Export Tools<br/>📤 Reports & Data Export]
+    %% === UTILITIES ===
+    subgraph Utilities ["🛠️ Utilities & Tools"]
+        FORMATTERS[Formatters<br/>💱 Currency/Date/Number]
+        VALIDATORS[Validators<br/>✅ Data Quality]
+        PERFORMANCE[Performance<br/>⏱️ Query Profiling]
+        EXPORTERS[Export Tools<br/>📤 Reports & Data]
+        LOGGING[Logging System<br/>📝 Structured Logs]
+        EXCEPTIONS[Exception Handling<br/>❌ Error Management]
     end
 
-    %% Local Storage
-    LOCAL[("💿 Local Cache<br/>test_local_data/")]
+    %% === LOCAL STORAGE ===
+    LOCAL[("💿 Local Cache<br/>./test_local_data/")]
 
-    %% Data Flow Connections
-    S3 --> CUR
-    S3 --> FOCUS
-    CUR --> S3DM
-    FOCUS --> S3DM
+    %% === CONNECTIONS ===
+    %% Data Sources to Management
+    S3 --> S3MGR
+    PRICING --> PRICEMGR
+    SAVINGS --> SAVINGSMGR
 
-    DC --> DUCK
-    DC --> PAM
-    DC --> SPAM
+    %% Configuration Flow
+    DC --> DUCKDB
+    DC --> POLARS
+    DC --> ATHENA
     DET --> DC
-    AUTH --> DUCK
-    AUTH --> PAM
-    AUTH --> SPAM
+    VALIDATOR --> DC
 
-    S3DM --> DD
-    DD --> LDM
-    LDM --> LOCAL
-    S3DM --> DUCK
-    LOCAL --> LDM
-    LDM --> DUCK
-    PAM --> DUCK
-    SPAM --> DUCK
+    %% Authentication Flow
+    AWS_AUTH --> DUCKDB
+    AWS_AUTH --> ATHENA
+    AWS_AUTH --> S3MGR
+    AWS_AUTH --> PRICEMGR
+    AWS_AUTH --> SAVINGSMGR
 
-    DUCK --> FINOPS
-    DUCK --> DEP
+    %% Data Management Flow
+    S3MGR --> DOWNLOADER
+    DOWNLOADER --> LOCALMGR
+    LOCALMGR --> LOCAL
+    LOCALMGR --> DUCKDB
+    S3MGR --> DUCKDB
+    S3MGR --> ATHENA
+    PRICEMGR --> DUCKDB
+    SAVINGSMGR --> DUCKDB
 
+    %% Engine Factory Flow
+    FACTORY --> DUCKDB
+    FACTORY --> POLARS
+    FACTORY --> ATHENA
+
+    %% Interface Flow
+    FINOPS --> FACTORY
+    FINOPS --> DUCKDB
+    FINOPS --> POLARS
+    FINOPS --> ATHENA
+
+    %% Analytics Flow
     FINOPS --> KPI
     FINOPS --> SPEND
-    FINOPS --> OPT
-    FINOPS --> ALLOC
-    FINOPS --> DISC
-    FINOPS --> AI
+    FINOPS --> OPTIMIZATION
+    FINOPS --> ALLOCATION
+    FINOPS --> DISCOUNTS
+    FINOPS --> AI_ANALYTICS
     FINOPS --> MCP
 
-    KPI --> EP1
-    SPEND --> EP2
-    OPT --> EP3
-    ALLOC --> EP4
-    DISC --> EP5
-    AI --> EP6
-    MCP --> EP7
+    %% API Flow
+    FASTAPI --> FINOPS
+    QUERY_EP --> FINOPS
+    MCP_EP --> FINOPS
+    KPI_EP --> FINOPS
+    SPEND_EP --> FINOPS
+    OPT_EP --> FINOPS
+    AI_EP --> FINOPS
 
-    EP1 --> FASTAPI
-    EP2 --> FASTAPI
-    EP3 --> FASTAPI
-    EP4 --> FASTAPI
-    EP5 --> FASTAPI
-    EP6 --> FASTAPI
-    EP7 --> FASTAPI
-    EP8 --> FASTAPI
-
-    %% Utility connections
-    FMT -.-> Analytics
-    VAL -.-> Analytics
-    PERF -.-> Analytics
-    EXP -.-> Analytics
-
-    %% Styling
-    classDef dataSource fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef engine fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef analytics fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef api fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef interface fill:#f1f8e9,stroke:#33691e,stroke-width:2px
-    classDef utils fill:#fce4ec,stroke:#880e4f,stroke-width:2px
-
-    class S3,CUR,FOCUS,LOCAL dataSource
-    class DUCK,AUTH engine
-    class KPI,SPEND,OPT,ALLOC,DISC,AI,MCP analytics
-    class FASTAPI,EP1,EP2,EP3,EP4,EP5,EP6,EP7,EP8 api
-    class FINOPS,DEP interface
-    class FMT,VAL,PERF,EXP utils
+    %% Utilities Support
+    LOGGING --> FINOPS
+    EXCEPTIONS --> FINOPS
+    PERFORMANCE --> FINOPS
 ```
 
-### Architecture Layers
+### 🏛️ Architecture Layers
 
-| Layer                  | Components                                                                                           | Purpose                                                                            |
-| ---------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| **🔧 Configuration**   | `DataConfig`, `DataExportType`                                                                       | Central configuration management for AWS data sources                              |
-| **💾 Data Management** | `S3DataManager`, `LocalDataManager`, `DataDownloader`, `PricingApiManager`, `SavingsPlansApiManager` | Handle S3 discovery, local caching, data synchronization, and AWS API pricing data |
-| **🧠 Core Engine**     | `DuckDBEngine`, `Authentication`                                                                     | SQL execution engine with AWS credential management                                |
-| **🎯 Interface**       | `FinOpsEngine`, `DataExportsPolars`                                                                  | Unified access point and backward compatibility                                    |
-| **📊 Analytics**       | 7 specialized modules                                                                                | Domain-specific cost analytics and optimization                                    |
-| **🌐 API**             | `FastAPI` + 8 endpoint routers                                                                       | Production-ready REST API with OpenAPI docs and SQL queries                        |
-| **🛠️ Utilities**       | Formatters, Validators, Performance, Export                                                          | Shared utilities for data processing and presentation                              |
+| Layer                  | Components                                         | Purpose                       | Key Features                                   |
+| ---------------------- | -------------------------------------------------- | ----------------------------- | ---------------------------------------------- |
+| **📂 Data Sources**    | S3, CUR 2.0, FOCUS 1.0, Pricing API, Savings API   | External data access          | Multi-format support, real-time pricing        |
+| **🔧 Configuration**   | `DataConfig`, `DataExportType`, Validators         | Centralized config management | Type-safe configuration, validation            |
+| **💾 Data Management** | S3Manager, LocalManager, Downloaders, API Managers | Data orchestration            | Smart caching, S3 optimization                 |
+| **🔐 Authentication**  | AWS Auth, Credential Cache                         | Secure AWS access             | IAM/STS support, credential rotation           |
+| **🧠 Query Engines**   | DuckDB, Polars, Athena, Factory                    | SQL execution                 | Multi-engine support, performance optimization |
+| **🎯 Interface**       | `FinOpsEngine`                                     | Unified API                   | Single entry point, consistent interface       |
+| **📊 Analytics**       | 7 specialized modules                              | Domain expertise              | KPI, optimization, AI insights                 |
+| **🌐 API**             | FastAPI, 6+ endpoints                              | Production REST API           | OpenAPI docs, modern web standards             |
+| **🛠️ Utilities**       | Formatters, Validators, Monitoring                 | Support functions             | Logging, performance, error handling           |
 
-### Data Flow
+## 🚀 Quick Start
 
-1. **📡 Discovery**: `S3DataManager` discovers CUR/FOCUS data in AWS S3
-2. **⬇️ Download**: `DataDownloader` caches data locally via `LocalDataManager`
-3. **💰 API Data**: `PricingApiManager` and `SavingsPlansApiManager` fetch real-time pricing
-4. **🦆 Query**: `DuckDBEngine` executes SQL on S3, local cache, and API data
-5. **📊 Analytics**: Specialized modules perform domain-specific analysis
-6. **🚀 Interface**: `FinOpsEngine` provides unified access to all analytics
-7. **🌐 API**: FastAPI exposes REST endpoints for analytics modules and custom SQL queries
-
-### Directory Structure
-
-```
-de_polars/
-├── engine/           # Core DuckDB SQL execution engine
-├── data/             # S3, local, and API data management
-│   ├── pricing_api_manager.py     # AWS Pricing API integration
-│   ├── savings_plan_api_manager.py # AWS SavingsPlans API integration
-├── analytics/        # Modular cost analytics components
-│   ├── kpi_summary.py         # KPI dashboard
-│   ├── spend_analytics.py     # Spend visibility & trends
-│   ├── optimization.py        # Cost optimization recommendations
-│   ├── allocation.py          # Cost allocation & tagging
-│   ├── discounts.py           # Discount tracking & negotiation
-│   ├── ai_recommendations.py  # AI-powered insights
-│   └── mcp_integration.py     # Model Context Protocol support
-├── api/              # FastAPI REST API layer
-├── utils/            # Shared utility functions
-│   ├── formatters.py         # Currency, number, date formatting
-│   ├── validators.py         # Data quality & config validation
-│   ├── performance.py        # Query profiling & caching
-│   └── exports.py            # Data export & report generation
-└── finops_engine.py  # Unified interface
-```
-
-## 🛠️ Installation
-
-### Prerequisites
-
-- Python 3.8+
-- AWS credentials configured
-- S3 bucket with Cost and Usage Report data
-
-### Install Dependencies
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/jasonwu001t/infralyzer.git
+cd infralyzer
+
+# Install dependencies
 pip install -r requirements.txt
-```
 
-### Install Package
-
-```bash
+# Install the package
 pip install -e .
 ```
 
-## 🎯 Quick Start
-
-### Option 1: New Modular Interface (Recommended)
+### Option 1: Python Interface (Recommended)
 
 ```python
-from de_polars import FinOpsEngine, DataConfig, DataExportType
+from infralyzer import FinOpsEngine, DataConfig, DataExportType
 
 # Configure your data source
 config = DataConfig(
-    s3_bucket='my-cost-data-bucket',
-    s3_data_prefix='cur2/cur2/data',
+    s3_bucket='your-cost-data-bucket',
+    s3_data_prefix='cur2/data',
     data_export_type=DataExportType.CUR_2_0,
-    table_name='CUR',
-    local_data_path='./local_data',  # Enable cost-saving local cache
-    prefer_local_data=True,
-
-    # Optional: Enable real-time pricing data
-    enable_pricing_api=True,         # AWS Pricing API integration
-    enable_savings_plans_api=True    # SavingsPlans API integration
+    local_data_path='./local_data',  # Optional: for caching
+    table_name='CUR'
 )
 
-# Initialize FinOps engine
+# Initialize the FinOps engine
 engine = FinOpsEngine(config)
 
-# One-time: Download data locally (eliminates future S3 costs)
-engine.download_data_locally()
+# Option: Download data locally (one-time setup for cost savings)
+# engine.download_data_locally()
 
-# Access any analytics module independently
+# Execute SQL queries (returns pandas DataFrame by default)
+df = engine.query("SELECT * FROM CUR LIMIT 10")
+
+# Use convenient output format methods
+json_result = engine.query_json("SELECT product_servicecode, SUM(line_item_unblended_cost) as cost FROM CUR GROUP BY 1 LIMIT 5")
+csv_result = engine.query_csv("SELECT * FROM CUR LIMIT 100")
+
+# Execute SQL files directly
+result = engine.query("cur2_analytics/cost_summary.sql")
+
+# Query parquet files directly
+result = engine.query("SELECT * FROM 'exports/monthly_costs.parquet' WHERE cost > 1000")
+
+# Access specialized analytics
 kpi_summary = engine.kpi.get_summary()
 spend_analysis = engine.spend.get_invoice_summary()
 optimization = engine.optimization.get_idle_resources()
 ```
 
-### Option 2: Backward Compatible Interface
+### Option 2: FastAPI Server
 
-```python
-from de_polars import DataExportsPolars
+```bash
+# Start the development server
+python main.py
 
-# Existing code works unchanged!
-data = DataExportsPolars(
-    s3_bucket='my-cost-data-bucket',
-    s3_data_prefix='cur2/cur2/data',
-    data_export_type='CUR2.0',
-    local_data_path='./local_data'
-)
-
-# Download data locally for cost savings
-data.download_data_locally()
-
-# Execute SQL queries
-result = data.query("""
-    SELECT
-        product_servicecode,
-        SUM(line_item_unblended_cost) as total_cost
-FROM CUR
-    WHERE line_item_unblended_cost > 0
-    GROUP BY 1
-    ORDER BY 2 DESC
-LIMIT 10
-""")
+# Or for production
+uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-## Query Engine
+```bash
+# Query via REST API
+curl -X POST "http://localhost:8000/api/v1/finops/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "SELECT * FROM CUR LIMIT 10",
+    "engine": "duckdb",
+    "output_format": "json"
+  }'
 
-The `engine.query()` method supports multiple data sources with a unified interface.
+# Natural language queries
+curl -X POST "http://localhost:8000/api/v1/finops/mcp/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "What are my top 5 services by cost this month?",
+    "query_type": "natural_language"
+  }'
+```
 
-### Supported Data Sources
+## 🎯 Core Capabilities
 
-The query engine handles 4 data source types:
+### 1. 🔍 Multi-Engine Query Support
 
-#### 1. SQL Query Strings
+Choose the best engine for your use case:
 
 ```python
-# Simple queries
-result = engine.query("SELECT COUNT(*) FROM CUR")
+# Fast analytics with DuckDB (default)
+result = engine.query("SELECT * FROM CUR LIMIT 1000", engine_name="duckdb")
 
-# Complex analytical queries with window functions
-result = engine.query("""
+# Modern DataFrame processing with Polars
+result = engine.query("SELECT * FROM CUR LIMIT 1000", engine_name="polars")
+
+# Serverless cloud queries with Athena
+result = engine.query("SELECT * FROM CUR LIMIT 1000", engine_name="athena")
+```
+
+### 2. 📄 Flexible Query Types
+
+Execute various query types seamlessly:
+
+```python
+# SQL query strings
+df = engine.query("SELECT product_servicecode, SUM(line_item_unblended_cost) as cost FROM CUR GROUP BY 1")
+
+# SQL files
+df = engine.query("cur2_analytics/monthly_summary.sql")
+
+# Direct parquet file queries
+df = engine.query("SELECT * FROM 'data/costs_2024.parquet' WHERE cost > 1000")
+
+# Multi-format output
+json_data = engine.query_json("SELECT * FROM CUR LIMIT 10")
+csv_data = engine.query_csv("SELECT * FROM CUR LIMIT 10")
+```
+
+### 3. 📊 Comprehensive Analytics
+
+Access specialized FinOps analytics:
+
+```python
+# KPI Dashboard
+kpi_data = engine.kpi.get_summary()
+# Returns: cost trends, service distribution, account metrics
+
+# Spend Analysis
+spend_data = engine.spend.get_invoice_summary()
+# Returns: monthly costs, service breakdown, account analysis
+
+# Cost Optimization
+optimization_data = engine.optimization.get_idle_resources()
+# Returns: unused resources, rightsizing opportunities
+
+# Cost Allocation
+allocation_data = engine.allocation.get_cost_allocation_overview()
+# Returns: tag-based allocation, account hierarchy
+
+# Discount Analysis
+discount_data = engine.discounts.get_current_agreements()
+# Returns: RI utilization, savings plans, negotiated discounts
+
+# AI Insights
+ai_insights = engine.ai.get_anomaly_detection()
+# Returns: cost anomalies, forecasting, recommendations
+```
+
+### 4. 🌐 Production-Ready API
+
+Access everything via REST endpoints:
+
+| Endpoint                                     | Method | Purpose                             |
+| -------------------------------------------- | ------ | ----------------------------------- |
+| `/api/v1/finops/query`                       | POST   | Execute SQL queries, files, parquet |
+| `/api/v1/finops/mcp/query`                   | POST   | Natural language queries            |
+| `/api/v1/finops/kpi/summary`                 | GET    | KPI dashboard data                  |
+| `/api/v1/finops/spend/invoice/summary`       | GET    | Spend analysis                      |
+| `/api/v1/finops/optimization/idle-resources` | GET    | Cost optimization                   |
+| `/api/v1/finops/ai/anomaly-detection`        | GET    | AI insights                         |
+| `/docs`                                      | GET    | Interactive API documentation       |
+
+## 💾 Data Caching Strategy
+
+Reduce S3 costs by 90%+ with smart local caching:
+
+```python
+# One-time setup: Download data locally
+engine.download_data_locally()
+
+# Automatic cost savings
+# - First query: Downloads from S3 (~$0.10 per GB)
+# - Subsequent queries: Uses local cache (~$0.00)
+# - Result: 90%+ cost reduction for repeated analytics
+
+# Check cache status
+cache_status = engine.check_local_data_status()
+print(f"Local files: {cache_status['local_file_count']}")
+print(f"Total size: {cache_status['total_size_gb']:.2f} GB")
+```
+
+## 🔧 Configuration Options
+
+### Environment Variables
+
+Set these for automatic configuration:
+
+```bash
+export FINOPS_S3_BUCKET=your-cost-data-bucket
+export FINOPS_S3_PREFIX=cur2/data
+export FINOPS_DATA_TYPE=CUR2.0
+export FINOPS_LOCAL_PATH=./local_data
+export FINOPS_TABLE_NAME=CUR
+```
+
+### Manual Configuration
+
+```python
+from infralyzer import DataConfig, DataExportType
+
+config = DataConfig(
+    # Required
+    s3_bucket='your-cost-data-bucket',
+    s3_data_prefix='cur2/data',
+    data_export_type=DataExportType.CUR_2_0,
+
+    # Optional optimization
+    local_data_path='./local_data',        # Enable local caching
+    prefer_local_data=True,                # Use cache when available
+
+    # Optional filtering
+    date_start='2024-01-01',               # Filter data range
+    date_end='2024-12-31',
+    table_name='CUR',                      # Main table name
+
+    # Optional AWS settings
+    aws_region='us-west-2',                # AWS region
+    aws_profile='finops',                  # AWS profile name
+)
+```
+
+## 🎯 Use Cases & Examples
+
+### Cost Analysis Dashboard
+
+```python
+# Monthly cost trends
+monthly_costs = engine.query("""
+    SELECT
+        DATE_TRUNC('month', line_item_usage_start_date) as month,
+        SUM(line_item_unblended_cost) as total_cost
+    FROM CUR
+    WHERE line_item_usage_start_date >= '2024-01-01'
+    GROUP BY 1
+    ORDER BY 1
+""")
+
+# Top services by cost
+top_services = engine.query("""
     SELECT
         product_servicecode,
         SUM(line_item_unblended_cost) as total_cost,
-        RANK() OVER (ORDER BY SUM(line_item_unblended_cost) DESC) as cost_rank
+        COUNT(DISTINCT line_item_resource_id) as resource_count
     FROM CUR
-    WHERE line_item_unblended_cost > 0
-    GROUP BY product_servicecode
-    ORDER BY total_cost DESC
+    WHERE line_item_usage_start_date >= CURRENT_DATE - INTERVAL '30 days'
+    GROUP BY 1
+    ORDER BY 2 DESC
     LIMIT 10
 """)
 ```
 
-#### 2. SQL Files
+### Cost Optimization Analysis
 
 ```python
-# Execute SQL from files (relative paths)
-result = engine.query("cur2_analytics/cost_analytics_transform.sql")
-result = engine.query("my_queries/monthly_summary.sql")
-
-# Execute SQL from files (absolute paths)
-result = engine.query("/path/to/complex_analysis.sql")
-```
-
-#### 3. Parquet Files (SQL-based)
-
-```python
-# Query parquet files using SQL syntax
-result = engine.query("SELECT * FROM 'output/monthly_costs.parquet'")
-result = engine.query("SELECT * FROM 'test_partitioner_output/cost_summary.parquet'")
-
-# Query parquet files with filtering and aggregation
-result = engine.query("""
+# Idle resources detection
+idle_resources = engine.query("""
     SELECT
+        line_item_resource_id,
         product_servicecode,
-        SUM(total_cost) as service_total
-    FROM 'output/monthly_costs.parquet'
-    WHERE total_cost > 100
-    GROUP BY product_servicecode
-    ORDER BY service_total DESC
-""")
-
-# Join multiple parquet files
-result = engine.query("""
-    SELECT
-        a.account_id,
-        a.total_cost,
-        b.budget_amount
-    FROM 'reports/account_costs.parquet' a
-    LEFT JOIN 'reports/account_budgets.parquet' b
-        ON a.account_id = b.account_id
-""")
-```
-
-#### 4. Multi-File Tables
-
-```python
-# Multiple parquet files combined into unified tables
-# Force S3 querying
-result = engine.query("SELECT * FROM CUR LIMIT 1000", force_s3=True)
-
-# Use local data (default)
-result = engine.query("SELECT * FROM CUR LIMIT 1000")
-```
-
-### Performance & Cost Comparison
-
-| Data Source             | Performance     | S3 Costs                  | Use Case                      |
-| ----------------------- | --------------- | ------------------------- | ----------------------------- |
-| **Parquet Files** (SQL) | ⚡ **Instant**  | ✅ **Zero**               | Pre-computed results, reports |
-| **Local Cache**         | 🚀 **Fast**     | ✅ **Zero**               | Full dataset analytics        |
-| **S3 Direct**           | 🐌 Slower       | 💰 **Costs Apply**        | Fresh data, one-time queries  |
-| **SQL Files**           | 📄 **Variable** | 📊 **Depends on content** | Reusable query templates      |
-
-### Workflow Examples
-
-#### SQL Development & Caching
-
-```python
-# Execute complex SQL
-complex_analysis = engine.query("""
-    WITH monthly_summary AS (
-        SELECT
-            DATE_TRUNC('month', line_item_usage_start_date) as month,
-            product_servicecode,
-            SUM(line_item_unblended_cost) as monthly_cost
-        FROM CUR
-        GROUP BY 1, 2
-    )
-    SELECT * FROM monthly_summary
-    WHERE monthly_cost > 100
-    ORDER BY month DESC, monthly_cost DESC
-""")
-
-# Save results
-complex_analysis.write_parquet("output/monthly_analysis.parquet")
-
-# Query saved results
-cached_results = engine.query("SELECT * FROM 'output/monthly_analysis.parquet'")
-```
-
-#### SQL File Library Management
-
-```python
-# Execute SQL files
-cost_trends = engine.query("analytics/cost_trend_analysis.sql")
-efficiency_metrics = engine.query("kpis/resource_efficiency.sql")
-
-# Batch process multiple SQL files
-sql_files = [
-    "analytics/service_costs.sql",
-    "analytics/region_analysis.sql",
-    "analytics/account_summary.sql"
-]
-
-results = {}
-for sql_file in sql_files:
-    results[sql_file] = engine.query(sql_file)
-    output_name = sql_file.replace('.sql', '.parquet').replace('/', '_')
-    results[sql_file].write_parquet(f"output/{output_name}")
-```
-
-#### Performance-Optimized Pipeline
-
-```python
-# Download dataset locally
-engine.download_data_locally()
-
-# Execute analytics on local data
-daily_summary = engine.query("analytics/daily_cost_summary.sql")
-daily_summary.write_parquet(f"reports/daily_{today}.parquet")
-
-# Query cached results
-latest_report = engine.query(f"reports/daily_{today}.parquet")
-```
-
-### Query Features
-
-#### Error Handling
-
-```python
-try:
-    result = engine.query("my_analysis.sql")
-    result = engine.query("SELECT * FROM 'cached_data.parquet'")
-    result = engine.query("SELECT * FROM CUR")
-except FileNotFoundError as e:
-    print(f"File not found: {e}")
-except Exception as e:
-    print(f"Query execution error: {e}")
-```
-
-#### Mixing Data Sources
-
-```python
-# Execute SQL file and cache result
-analysis = engine.query("complex_analytics/quarterly_analysis.sql")
-analysis.write_parquet("cache/quarterly_results.parquet")
-
-# Query cached results
-report_data = engine.query("SELECT * FROM 'cache/quarterly_results.parquet'")
-
-# Combine with real-time data
-current_month = engine.query("SELECT * FROM CUR WHERE billing_period = '2025-08'")
-```
-
-### Cost Summary
-
-| Query Type                                     | Data Loading     | S3 API Calls                | Cost Impact               |
-| ---------------------------------------------- | ---------------- | --------------------------- | ------------------------- |
-| `engine.query("SELECT ...")`                   | Full dataset     | ✅ Local first, S3 fallback | 💰 **90% cost reduction** |
-| `engine.query("query.sql")`                    | Full dataset     | ✅ Local first, S3 fallback | 💰 **90% cost reduction** |
-| `engine.query("SELECT * FROM 'data.parquet'")` | Direct file load | ❌ **Zero S3 calls**        | 💚 **100% cost savings**  |
-| `engine.query(..., force_s3=True)`             | Full dataset     | ❌ **Forces S3 usage**      | 💸 Full S3 query costs    |
-
-## AWS Pricing API Integration
-
-Direct integration with AWS Pricing API and SavingsPlans API for pricing lookups.
-
-### Price Lookup Functions
-
-```python
-from de_polars.data.pricing_api_manager import PricingApiManager
-from de_polars.data.savings_plan_api_manager import SavingsPlansApiManager
-
-# Initialize managers
-config = DataConfig(
-    s3_bucket='dummy-bucket',  # Not needed for API calls
-    s3_data_prefix='dummy-prefix',
-    data_export_type=DataExportType.CUR_2_0,
-    aws_region='us-east-1',
-    local_data_path='./cache'  # For caching API results
-)
-
-pricing_manager = PricingApiManager(config)
-sp_manager = SavingsPlansApiManager(config)
-
-# Get on-demand price
-price = pricing_manager.get_simple_price(
-    region_code='us-east-1',
-    instance_type='m5.large',
-    operating_system='Linux',
-    tenancy='Shared'
-)
-print(f"On-Demand: ${price:.4f}/hour")
-
-# Get savings plan rate
-sp_rate = sp_manager.get_simple_savings_plan_rate(
-    instance_type='m5.large',
-    region='us-east-1'
-)
-print(f"Savings Plan: ${sp_rate:.4f}/hour")
-
-# Compare pricing
-comparison = sp_manager.compare_savings_vs_ondemand(
-    region='us-east-1',
-    instance_type='m5.large',
-    on_demand_price=price
-)
-print(f"Savings: {comparison['savings_percentage']:.1f}%")
-print(f"Monthly Savings: ${comparison['monthly_savings']:.2f}")
-```
-
-### Automated Table Integration
-
-When enabled, pricing data is automatically available as SQL tables for joining with CUR2.0 data:
-
-```python
-config = DataConfig(
-    # ... your existing configuration ...
-
-    # Enable API data sources
-    enable_pricing_api=True,
-    enable_savings_plans_api=True,
-
-    # Configure data collection
-    pricing_api_regions=['us-east-1', 'eu-west-1'],
-    pricing_api_instance_types=['t3.micro', 'm5.large', 'c5.xlarge'],
-    api_cache_max_age_days=1
-)
-
-engine = FinOpsEngine(config)
-
-# API data automatically registered as tables
-result = engine.query("""
-    SELECT
-        c.product_instance_type,
-        c.product_region,
-        SUM(c.line_item_unblended_cost) as actual_cost,
-        AVG(p.price_per_hour_usd) as current_on_demand_rate,
-        SUM(c.line_item_usage_amount) as usage_hours,
-        CASE
-            WHEN SUM(c.line_item_usage_amount * p.price_per_hour_usd) > 0
-            THEN (1 - SUM(c.line_item_unblended_cost) / SUM(c.line_item_usage_amount * p.price_per_hour_usd)) * 100
-            ELSE 0
-        END as savings_percentage
-    FROM CUR c
-    LEFT JOIN aws_pricing p ON (
-        c.product_instance_type = p.instance_type
-        AND c.product_region = p.region_code
-        AND c.product_operating_system = p.operating_system
-    )
-    WHERE c.line_item_product_code = 'AmazonEC2'
-    GROUP BY c.product_instance_type, c.product_region
-    ORDER BY savings_percentage DESC
-""")
-```
-
-### Available API Tables
-
-When API data sources are enabled, these tables are automatically available:
-
-| Table Name                | Description           | Key Join Columns                                   |
-| ------------------------- | --------------------- | -------------------------------------------------- |
-| `aws_pricing`             | EC2 on-demand pricing | `instance_type`, `region_code`, `operating_system` |
-| `aws_rds_pricing`         | RDS instance pricing  | `instance_class`, `region_code`, `database_engine` |
-| `aws_savings_plans`       | Active savings plans  | `savings_plan_arn`                                 |
-| `aws_savings_plans_rates` | Detailed SP rates     | `instance_type`, `region`, `savings_plan_id`       |
-
-### Configuration Options
-
-```python
-config = DataConfig(
-    # ... existing config ...
-
-    # API Data Source Control
-    enable_pricing_api=True,              # Enable AWS Pricing API
-    enable_savings_plans_api=True,        # Enable SavingsPlans API
-    api_cache_max_age_days=1,             # Cache refresh frequency
-
-    # Pricing API Filters
-    pricing_api_regions=['us-east-1', 'eu-west-1'],
-    pricing_api_instance_types=['t3.micro', 'm5.large'],
-
-    # Savings Plans Settings
-    savings_plans_include_rates=True      # Include detailed rate data
-)
-```
-
-### Common Use Cases
-
-#### 1. Cost Efficiency Analysis
-
-```python
-# Compare actual costs vs theoretical on-demand costs
-efficiency_query = """
-SELECT
-    product_instance_type,
-    SUM(line_item_unblended_cost) as actual_cost,
-    SUM(line_item_usage_amount * aws_pricing.price_per_hour_usd) as theoretical_cost,
-    (1 - SUM(line_item_unblended_cost) / SUM(line_item_usage_amount * aws_pricing.price_per_hour_usd)) * 100 as efficiency_pct
-FROM CUR
-LEFT JOIN aws_pricing ON CUR.product_instance_type = aws_pricing.instance_type
-WHERE line_item_product_code = 'AmazonEC2'
-GROUP BY product_instance_type
-ORDER BY efficiency_pct DESC
-"""
-```
-
-#### 2. Savings Plans Coverage
-
-```python
-# Analyze savings plan coverage and utilization
-coverage_query = """
-SELECT
-    bill_billing_period_start_date,
-    SUM(line_item_unblended_cost) as total_cost,
-    SUM(CASE WHEN savings_plan_savings_plan_a_r_n IS NOT NULL
-             THEN line_item_unblended_cost ELSE 0 END) as sp_covered_cost,
-    (SUM(CASE WHEN savings_plan_savings_plan_a_r_n IS NOT NULL
-              THEN line_item_unblended_cost ELSE 0 END) / SUM(line_item_unblended_cost)) * 100 as coverage_pct
-FROM CUR c
-LEFT JOIN aws_savings_plans sp ON c.savings_plan_savings_plan_a_r_n = sp.savings_plan_arn
-WHERE line_item_product_code = 'AmazonEC2'
-GROUP BY bill_billing_period_start_date
-ORDER BY coverage_pct DESC
-"""
-```
-
-#### 3. Instance Comparison
-
-```python
-# Compare pricing across multiple instance types
-instances = ['t3.micro', 't3.small', 'm5.large', 'c5.xlarge']
-comparison_df = pricing_manager.compare_instance_pricing(
-    region_code='us-east-1',
-    instance_types=instances
-)
-print(comparison_df)
-```
-
-### Performance & Caching
-
-- **Automatic Caching**: API responses are cached locally for 24 hours by default
-- **Incremental Updates**: Only fetch new data when cache expires
-- **Configurable Refresh**: Adjust `api_cache_max_age_days` for your needs
-- **Background Loading**: API data loads automatically during query execution
-
-### Testing
-
-Run the API data handlers test to verify functionality:
-
-```bash
-python tests/test_15_api_data_handlers.py
-```
-
-See example usage:
-
-```bash
-python simple_price_example.py
-```
-
-## 🌐 FastAPI Deployment
-
-### Create FastAPI Application
-
-Create `main.py`:
-
-```python
-from de_polars.api import create_finops_app
-
-# Method 1: Direct configuration
-app = create_finops_app(
-    s3_bucket='my-cost-data-bucket',
-    s3_data_prefix='cur2/cur2/data',
-    data_export_type='CUR2.0',
-    local_data_path='./local_data'
-)
-
-# Method 2: Environment variables
-# app = create_finops_app_from_env()
-```
-
-### Environment Configuration
-
-Create `.env` file:
-
-```bash
-FINOPS_S3_BUCKET=my-cost-data-bucket
-FINOPS_S3_PREFIX=cur2/cur2/data
-FINOPS_DATA_TYPE=CUR2.0
-FINOPS_LOCAL_PATH=./local_data
-FINOPS_TABLE_NAME=CUR
-AWS_REGION=us-east-1
-```
-
-### Run FastAPI Server
-
-```bash
-# Development server
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-
-# Production server
-uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
-```
-
-### Access API Documentation
-
-- **Interactive Docs**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-- **Health Check**: http://localhost:8000/health
-
-## 📊 Available API Endpoints
-
-### ⭐ KPI Summary Dashboard
-
-```http
-GET /api/v1/finops/kpi/summary
-GET /api/v1/finops/kpi/health-check
-GET /api/v1/finops/kpi/executive-summary
-GET /api/v1/finops/kpi/dashboard-data
-```
-
-### 💰 Spend Analytics
-
-```http
-GET /api/v1/finops/spend/invoice/summary
-GET /api/v1/finops/spend/regions/top
-GET /api/v1/finops/spend/services/top
-GET /api/v1/finops/spend/breakdown
-POST /api/v1/finops/spend/export
-```
-
-### ⚡ Cost Optimization
-
-```http
-GET /api/v1/finops/optimization/idle-resources
-GET /api/v1/finops/optimization/rightsizing
-GET /api/v1/finops/optimization/cross-service-migration
-GET /api/v1/finops/optimization/vpc-charges
-POST /api/v1/finops/optimization/implement-recommendation
-```
-
-### 🏷️ Cost Allocation & Tagging
-
-```http
-GET /api/v1/finops/allocation/account-hierarchy
-GET /api/v1/finops/allocation/tagging-compliance
-GET /api/v1/finops/allocation/cost-center-breakdown
-POST /api/v1/finops/allocation/tagging-rules
-GET /api/v1/finops/allocation/third-party-integration
-```
-
-### 💳 Discount Tracking
-
-```http
-GET /api/v1/finops/discounts/current-agreements
-GET /api/v1/finops/discounts/negotiation-opportunities
-GET /api/v1/finops/discounts/usage-forecasting
-POST /api/v1/finops/discounts/commitment-planning
-```
-
-### 🤖 AI Recommendations
-
-```http
-GET /api/v1/finops/ai/anomaly-detection
-GET /api/v1/finops/ai/optimization-insights
-POST /api/v1/finops/ai/custom-analysis
-GET /api/v1/finops/ai/forecasting
-```
-
-### 🔌 MCP Integration
-
-```http
-GET /api/v1/finops/mcp/resources
-GET /api/v1/finops/mcp/tools
-POST /api/v1/finops/mcp/query
-WebSocket /api/v1/finops/mcp/stream
-```
-
-### 🔍 SQL Query Interface
-
-Execute custom SQL queries for flexible data analysis:
-
-```http
-POST /api/v1/finops/sql/query      # Execute custom SQL queries
-GET  /api/v1/finops/sql/schema     # Get data schema and examples
-GET  /api/v1/finops/sql/tables     # List available tables
-```
-
-**Key Features:**
-
-- Custom SELECT queries on AWS cost data
-- Support for complex JOINs, CTEs, and window functions
-- JSON and CSV output formats
-- Built-in security validation (only SELECT queries allowed)
-- Access to main data table and pre-built cost optimization views
-
-**Example Query Request:**
-
-```json
-{
-  "sql": "SELECT product_servicecode, SUM(line_item_unblended_cost) as total_cost FROM CUR WHERE line_item_unblended_cost > 0 GROUP BY product_servicecode ORDER BY total_cost DESC LIMIT 5",
-  "limit": 1000,
-  "format": "json"
-}
-```
-
-> 📖 **Documentation**: See [`de_polars/api/README.md`](de_polars/api/README.md) for SQL API documentation with examples, security features, and integration guides.
-
-## Creating Custom API Endpoints
-
-### Step 1: Create Analytics Module
-
-Create `de_polars/analytics/custom_analytics.py`:
-
-```python
-"""
-Custom Analytics Module - Your specialized cost analysis
-"""
-import polars as pl
-from typing import Dict, Any
-from ..engine.duckdb_engine import DuckDBEngine
-
-class CustomAnalytics:
-    """Custom cost analytics functionality."""
-
-    def __init__(self, engine: DuckDBEngine):
-        self.engine = engine
-        self.config = engine.config
-
-    def get_custom_metrics(self) -> Dict[str, Any]:
-        """Your custom metric calculation."""
-        sql = f"""
-        SELECT
-            product_servicecode,
-            DATE_TRUNC('month', line_item_usage_start_date) as month,
-            SUM(line_item_unblended_cost) as monthly_cost
-        FROM {self.config.table_name}
-    WHERE line_item_unblended_cost > 0
-        GROUP BY 1, 2
-        ORDER BY 3 DESC
-        """
-
-        result = self.engine.query(sql)
-
-        # Process results
-        metrics = []
-        for row in result.iter_rows(named=True):
-            metrics.append({
-                "service": row["product_servicecode"],
-                "month": str(row["month"]),
-                "cost": float(row["monthly_cost"])
-            })
-
-        return {"custom_metrics": metrics}
-```
-
-### Step 2: Add to FinOpsEngine
-
-Update `de_polars/finops_engine.py`:
-
-```python
-from .analytics.custom_analytics import CustomAnalytics
-
-class FinOpsEngine:
-    def __init__(self, config: DataConfig):
-        # ... existing code ...
-        self._custom = None
-
-    @property
-    def custom(self) -> CustomAnalytics:
-        """Access Custom Analytics module."""
-        if self._custom is None:
-            self._custom = CustomAnalytics(self.engine)
-        return self._custom
-```
-
-### Step 3: Create API Endpoints
-
-Create `de_polars/api/endpoints/custom_endpoints.py`:
-
-```python
-"""
-Custom API endpoints
-"""
-from fastapi import APIRouter, Depends, HTTPException
-from ...finops_engine import FinOpsEngine
-
-router = APIRouter()
-
-@router.get("/custom/metrics")
-async def get_custom_metrics(engine: FinOpsEngine = Depends()):
-    """Get custom cost metrics."""
-    try:
-        result = engine.custom.get_custom_metrics()
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-```
-
-### Step 4: Register Router
-
-Update `de_polars/api/fastapi_app.py`:
-
-```python
-from .endpoints.custom_endpoints import router as custom_router
-
-def _create_app(self) -> FastAPI:
-    # ... existing code ...
-    app.include_router(custom_router, prefix="/api/v1/finops", tags=["Custom"])
-```
-
-## Example Use Cases
-
-### 1. Cost Dashboard
-
-```python
-# Get complete dashboard data
-dashboard = engine.get_dashboard_data()
-
-print(f"Monthly Spend: ${dashboard['spend_summary']['invoice_total']:,.2f}")
-print(f"Optimization Potential: ${dashboard['kpi_summary']['savings_summary']['total_potential_savings']:,.2f}")
-```
-
-### 2. Cost Health Assessment
-
-```python
-# Run cost health check
-health = engine.run_cost_health_check()
-
-print(f"Overall Health Score: {health['overall_score']}/100")
-for category, score in health['category_scores'].items():
-    print(f"  {category}: {score}/100")
-```
-
-### 3. AI-Powered Analysis
-
-```python
-# Detect cost anomalies
-anomalies = engine.ai.detect_anomalies(lookback_days=30)
-print(f"Found {len(anomalies['anomalies'])} cost anomalies")
-
-# Natural language queries
-analysis = engine.ai.analyze_custom_query("What are my top 5 most expensive services?")
-print(f"Query: {analysis['query']}")
-print(f"Results: {analysis['narrative_insights']}")
-```
-
-### 4. Utility Functions
-
-```python
-from de_polars import CurrencyFormatter, NumberFormatter, DataValidator
-
-# Format currency values
-formatted_cost = CurrencyFormatter.format_currency(125432.50)  # "$125,432.50"
-large_cost = CurrencyFormatter.format_large_currency(1250000)  # "$1.25M"
-
-# Format percentages and numbers
-growth_rate = NumberFormatter.format_percentage(15.7)  # "+15.7%"
-resource_count = NumberFormatter.format_large_number(1500000)  # "1.5M"
-
-# Validate data quality
-validation = DataValidator.validate_cost_data(your_dataframe)
-print(f"Data quality score: {validation['data_quality_score']}/100")
-```
-
-### 5. SQL Analytics
-
-```python
-# Complex analytical query
-result = engine.query("""
-WITH monthly_trends AS (
-    SELECT
-        DATE_TRUNC('month', line_item_usage_start_date) as month,
-        product_servicecode,
-        SUM(line_item_unblended_cost) as cost,
-        LAG(SUM(line_item_unblended_cost)) OVER (
-            PARTITION BY product_servicecode
-            ORDER BY DATE_TRUNC('month', line_item_usage_start_date)
-        ) as prev_month_cost
+        line_item_unblended_cost,
+        line_item_usage_start_date
     FROM CUR
     WHERE line_item_unblended_cost > 0
+    AND line_item_usage_amount = 0  -- No usage but incurring cost
+    AND line_item_usage_start_date >= CURRENT_DATE - INTERVAL '7 days'
+""")
+
+# Rightsizing opportunities
+rightsizing = engine.query("cur2_analytics/rightsizing_analysis.sql")
+```
+
+### Account & Tag Analysis
+
+```python
+# Cost by account
+account_costs = engine.query("""
+    SELECT
+        line_item_usage_account_id,
+        SUM(line_item_unblended_cost) as account_cost,
+        COUNT(DISTINCT product_servicecode) as service_count
+    FROM CUR
+    GROUP BY 1
+    ORDER BY 2 DESC
+""")
+
+# Tag-based allocation
+tag_allocation = engine.query("""
+    SELECT
+        resource_tags_user_environment as environment,
+        resource_tags_user_team as team,
+        SUM(line_item_unblended_cost) as allocated_cost
+    FROM CUR
+    WHERE resource_tags_user_environment IS NOT NULL
     GROUP BY 1, 2
-)
-SELECT
-    product_servicecode,
-    month,
-    cost,
-    (cost - prev_month_cost) / prev_month_cost * 100 as growth_rate
-FROM monthly_trends
-WHERE prev_month_cost > 0
-ORDER BY ABS(growth_rate) DESC
 """)
 ```
 
-## Docker Deployment
+## 🚀 Advanced Features
 
-Create `Dockerfile`:
+### Multi-Engine Performance Comparison
 
-```dockerfile
-FROM python:3.9-slim
+```python
+import time
 
-WORKDIR /app
+queries = [
+    "SELECT COUNT(*) FROM CUR",
+    "SELECT product_servicecode, SUM(line_item_unblended_cost) FROM CUR GROUP BY 1",
+    "SELECT * FROM CUR LIMIT 10000"
+]
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+engines = ['duckdb', 'polars', 'athena']
 
-COPY . .
-RUN pip install -e .
-
-EXPOSE 8000
-
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+for query in queries:
+    print(f"Query: {query[:50]}...")
+    for engine_name in engines:
+        start = time.time()
+        result = engine.query(query, engine_name=engine_name)
+        duration = time.time() - start
+        print(f"  {engine_name}: {duration:.2f}s ({len(result)} rows)")
 ```
 
-Create `docker-compose.yml`:
+### Custom Analytics Pipelines
 
-```yaml
-version: "3.8"
-services:
-  finops-api:
-    build: .
-    ports:
-      - "8000:8000"
-    environment:
-      - FINOPS_S3_BUCKET=my-cost-data-bucket
-      - FINOPS_S3_PREFIX=cur2/cur2/data
-      - FINOPS_DATA_TYPE=CUR2.0
-      - FINOPS_LOCAL_PATH=/app/data
-    volumes:
-      - ./data:/app/data
+```python
+# Create a custom analytics pipeline
+class CustomCostAnalytics:
+    def __init__(self, engine):
+        self.engine = engine
+
+    def get_monthly_service_trends(self, months=12):
+        """Get monthly trends for top services"""
+        sql = f"""
+        WITH monthly_costs AS (
+            SELECT
+                DATE_TRUNC('month', line_item_usage_start_date) as month,
+                product_servicecode,
+                SUM(line_item_unblended_cost) as monthly_cost
+            FROM CUR
+            WHERE line_item_usage_start_date >= CURRENT_DATE - INTERVAL '{months} months'
+            GROUP BY 1, 2
+        ),
+        top_services AS (
+            SELECT product_servicecode
+            FROM CUR
+            GROUP BY 1
+            ORDER BY SUM(line_item_unblended_cost) DESC
+            LIMIT 10
+        )
+        SELECT mc.*
+        FROM monthly_costs mc
+        JOIN top_services ts ON mc.product_servicecode = ts.product_servicecode
+        ORDER BY mc.month, mc.monthly_cost DESC
+        """
+        return self.engine.query(sql)
+
+# Use custom analytics
+analytics = CustomCostAnalytics(engine)
+trends = analytics.get_monthly_service_trends(months=6)
 ```
 
-Run with:
+## 📚 API Documentation
+
+### Interactive Documentation
+
+When running the FastAPI server, access comprehensive documentation:
+
+- **Swagger UI**: `http://localhost:8000/docs`
+- **ReDoc**: `http://localhost:8000/redoc`
+- **Health Check**: `http://localhost:8000/health`
+
+### Query API Reference
+
+```python
+# FinOpsEngine Query Methods
+engine.query(sql, engine_name="duckdb", format=QueryResultFormat.DATAFRAME, force_s3=False)
+engine.query_json(sql, force_s3=False)  # Returns JSON/dict format
+engine.query_csv(sql, force_s3=False)   # Returns CSV string
+engine.query_arrow(sql, force_s3=False) # Returns Arrow format
+
+# Specialized Analytics
+engine.kpi.get_summary(billing_period=None, filters=None)
+engine.spend.get_invoice_summary(start_date=None, end_date=None)
+engine.optimization.get_idle_resources(threshold_days=7)
+engine.allocation.get_cost_allocation_overview(group_by="account")
+engine.discounts.get_current_agreements()
+engine.ai.get_anomaly_detection(sensitivity="medium")
+```
+
+## 🛠️ Development & Testing
+
+### Running Tests
 
 ```bash
-docker-compose up -d
+# Run all tests
+python -m pytest tests/
+
+# Run specific test categories
+python tests/test_1_query_s3_multi_engine.py      # Multi-engine testing
+python tests/test_3_query_local.py                # Local data testing
+python tests/test_5_sql_file_execution.py         # SQL file execution
+python tests/test_10_fastapi_endpoints.py         # API endpoint testing
 ```
 
-## Cost Optimization with Local Caching
+### Development Setup
 
-### Initial Setup (One-time)
+```bash
+# Install in development mode
+pip install -e .
 
-```python
-engine = FinOpsEngine(config)
+# Start development server with auto-reload
+python main.py
 
-# Download S3 data to local storage (one-time cost)
-engine.download_data_locally()
+# Or with uvicorn
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Ongoing Usage (Zero S3 costs)
+## 🏷️ Data Export Support
+
+Infralyzer supports multiple AWS cost data formats:
+
+| Format               | Description                     | Status          |
+| -------------------- | ------------------------------- | --------------- |
+| **CUR 2.0**          | AWS Cost and Usage Reports v2   | ✅ Full Support |
+| **FOCUS 1.0**        | FinOps Open Cost and Usage Spec | ✅ Full Support |
+| **COH**              | Cost Optimization Hub           | ✅ Beta Support |
+| **Carbon Emissions** | AWS Carbon Footprint Reports    | 🔄 Coming Soon  |
+
+## 📈 Performance & Scaling
+
+### Query Performance Tips
+
+1. **Use Local Caching**: Download data locally for 90%+ faster queries
+2. **Choose Right Engine**: DuckDB for analytics, Athena for massive datasets
+3. **Filter Early**: Use date ranges and WHERE clauses to reduce data
+4. **Optimize SQL**: Use proper indexing and query patterns
+
+### Scaling Considerations
 
 ```python
-# All future queries use local data automatically
-result = engine.query("SELECT * FROM CUR WHERE ...")  # No S3 charges!
-
-# Check data status
-status = engine.check_local_data_status()
-print(f"Local data: {status['total_files']} files, {status['total_size_mb']:.1f} MB")
-```
-
-## Security & Authentication
-
-### API Key Authentication
-
-Update `main.py`:
-
-```python
-from fastapi import Depends, HTTPException, Header
-
-async def get_api_key(x_api_key: str = Header()):
-    if x_api_key != "your-secret-api-key":
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    return x_api_key
-
-# Add dependency to routes
-@app.get("/api/v1/finops/kpi/summary", dependencies=[Depends(get_api_key)])
-async def protected_endpoint():
-    # ... endpoint logic
-```
-
-### AWS IAM Roles
-
-For production, use IAM roles instead of access keys:
-
-```python
+# For large datasets (>1TB)
 config = DataConfig(
-    s3_bucket='my-cost-data-bucket',
-    s3_data_prefix='cur2/cur2/data',
+    s3_bucket='your-bucket',
+    s3_data_prefix='cur2/data',
     data_export_type=DataExportType.CUR_2_0,
-    # No AWS credentials needed - uses IAM role
+    # Use Athena for massive datasets
+    prefer_athena_for_large_queries=True,
+    # Partition filtering
+    date_start='2024-01-01',
+    date_end='2024-12-31'
+)
+
+# Production FastAPI deployment
+# uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4 --worker-class uvicorn.workers.UvicornWorker
+```
+
+## 🔒 Security & Best Practices
+
+### AWS Authentication
+
+```python
+# Recommended: Use IAM roles in production
+config = DataConfig(
+    s3_bucket='your-bucket',
+    s3_data_prefix='cur2/data',
+    data_export_type=DataExportType.CUR_2_0,
+    # IAM role-based access (recommended)
+    role_arn='arn:aws:iam::123456789012:role/FinOpsAnalyticsRole'
+)
+
+# Development: Use profiles
+config = DataConfig(
+    s3_bucket='your-bucket',
+    s3_data_prefix='cur2/data',
+    data_export_type=DataExportType.CUR_2_0,
+    aws_profile='finops-dev'
 )
 ```
 
-## Supported Data Export Types
+### Production Deployment
 
-- **CUR 2.0**: `DataExportType.CUR_2_0` - AWS Cost and Usage Report v2.0
-- **FOCUS 1.0**: `DataExportType.FOCUS_1_0` - FinOps Open Cost and Usage Specification
-- **COH**: `DataExportType.COH` - AWS Cost Optimization Hub
-- **Carbon Emissions**: `DataExportType.CARBON_EMISSION` - AWS Carbon Footprint
+```python
+# production_config.py
+import os
+from infralyzer import DataConfig, DataExportType
 
-## Contributing
+def get_production_config():
+    return DataConfig(
+        s3_bucket=os.environ['FINOPS_S3_BUCKET'],
+        s3_data_prefix=os.environ['FINOPS_S3_PREFIX'],
+        data_export_type=DataExportType(os.environ.get('FINOPS_DATA_TYPE', 'CUR2.0')),
+        local_data_path=os.environ.get('FINOPS_LOCAL_PATH', './cache'),
+        aws_region=os.environ.get('AWS_REGION', 'us-west-2')
+    )
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+### Development Workflow
 
 1. Fork the repository
 2. Create a feature branch
-3. Add your analytics module or API endpoint
-4. Test thoroughly
-5. Submit a pull request
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass
+6. Submit a pull request
 
-## License
+## 📄 License
 
-MIT License - see LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
+## 🙋 Support & Community
 
-- **Documentation**: Check the `/docs` endpoint when running the API
-- **Issues**: GitHub Issues
-- **Examples**: See `example_new_modular_usage.py` and `simple_price_example.py`
+- **Documentation**: [GitHub Wiki](https://github.com/jasonwu001t/infralyzer/wiki)
+- **Issues**: [GitHub Issues](https://github.com/jasonwu001t/infralyzer/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/jasonwu001t/infralyzer/discussions)
 
 ---
 
-Start with the `engine.query()` method - query SQL strings, SQL files, and parquet files with one unified interface. Add local data caching to reduce S3 query costs, then build custom analytics on the modular architecture.
+**Built with ❤️ for the FinOps community**
+
+Transform your AWS cost management with modern analytics, intelligent caching, and production-ready APIs.

@@ -36,7 +36,7 @@ def test_simple_price_lookup():
         pricing_manager = AWSPricingManager(config)
         
         # Test with REAL AWS Pricing API calls - ONE AT A TIME for debugging
-        print("📋 Testing g6.4xlarge first (has both on-demand and savings plan rates):")
+        print("Testing g6.4xlarge first (has both on-demand and savings plan rates):")
         print(f"Fetching real price for g6.4xlarge in us-east-1...")
         price1 = pricing_manager.get_ondemand_price("us-east-1", "g6.4xlarge", "Linux")
         if price1:
@@ -44,7 +44,7 @@ def test_simple_price_lookup():
         else:
             print(f"  g6.4xlarge: Price not found")
         
-        print("\n📋 Testing m5.large separately:")
+        print("\nTesting m5.large separately:")
         print(f"Fetching real price for m5.large in us-east-1...")
         
         price2 = pricing_manager.get_ondemand_price("us-east-1", "m5.large", "Linux")
@@ -68,7 +68,7 @@ def test_simple_price_lookup():
         # sp_manager = SavingsPlansApiManager(config)  # No longer needed
         
                 # Test savings plans for the instances we successfully got prices for
-        print("📋 Testing Savings Plans API:")
+        print("Testing Savings Plans API:")
         
         # Test for g6.4xlarge if we got its price
         if price1:

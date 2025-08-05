@@ -20,12 +20,12 @@ def test_query_local():
     
     # Configuration for local data access
     local_path = "./test_local_data"
-    table_name = 'FOCUS'
+    table_name = 'CUR'
 
     config = DataConfig(
-        s3_bucket='billing-data-exports-focus',          
-        s3_data_prefix='focus1/focus1/data',       
-        data_export_type=DataExportType.FOCUS_1_0,     
+        s3_bucket='billing-data-exports-cur',          
+        s3_data_prefix='cur2/cur2/data',       
+        data_export_type=DataExportType.CUR_2_0,     
         table_name=table_name,                        
         date_start='2025-01',                    
         date_end='2025-07',
@@ -45,21 +45,16 @@ def test_query_local():
             print("Run test_2_download_local.py first")
             return False
         
-        # Basic count query
-        print("Running count query...")
-        result = engine.query("SELECT COUNT(*) as total_records FROM {}".format(table_name))
-        print(f"Total records: {result['total_records'][0]:,}")
-        
-        # Sample data query
         print("Getting sample data...")
+        # Default is now DataFrame! No need to specify format
         services = engine.query("""
             SELECT 
                 *
             FROM {}
-            LIMIT 10
+            LIMIT 2
         """.format(table_name))
 
-        print(f"Sample data: {len(services)} rows x {len(services.columns)} columns")
+        print ('QUERY RESULTS: ', services)
         
         print("TEST PASSED")
         return True

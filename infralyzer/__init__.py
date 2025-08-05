@@ -33,10 +33,24 @@ Quick Start:
 """
 
 # Core engine and configuration
-from .engine import DuckDBEngine, DataConfig, DataExportType
+# Core engine and configuration
+from .engine import (
+    BaseQueryEngine,
+    QueryEngineFactory,
+    QueryResultFormat,
+    DuckDBEngine,
+    PolarsEngine,
+    AthenaEngine,
+    DataConfig,
+    DataExportType
+)
 
 # Data management
-from .data import S3DataManager, LocalDataManager, DataDownloader
+from .data import (
+    S3DataManager,
+    LocalDataManager,
+    DataDownloader
+)
 
 # Analytics modules
 from .analytics import (
@@ -48,11 +62,15 @@ from .analytics import (
     AIRecommendationAnalytics
 )
 
-# Include MCP integration
+# MCP integration
 from .analytics.mcp_integration import MCPIntegrationAnalytics
 
 # Authentication utilities
-from .auth import check_credential_expiration, get_boto3_client, get_storage_options
+from .auth import (
+    check_credential_expiration,
+    get_boto3_client,
+    get_storage_options
+)
 
 # Utility functions
 from .utils import (
@@ -64,29 +82,59 @@ from .utils import (
     QueryProfiler,
     CacheManager,
     DataExporter,
-    ReportGenerator
+    ReportGenerator,
+    handle_exception,
+    log_and_raise,
+    safe_execute
 )
 
-# Data partitioner (existing functionality)
-from .data_partitioner import DataPartitioner
+# SQL patterns and query utilities
+from .utils.sql_patterns import SQLPatterns, QueryBuilder
 
-# Backward compatibility - recreate DataExportsPolars using new architecture
-from .client import DataExportsPolars
+# Configuration validation
+from .config_validator import ConfigValidator as EnhancedConfigValidator
 
-# New unified engine interface
+# Exception handling
+from .exceptions import (
+    InfralyzerError,
+    ConfigurationError,
+    DataSourceError,
+    QueryExecutionError,
+    AuthenticationError,
+    ValidationError,
+    EngineError,
+    DataProcessingError,
+    APIError,
+    CacheError,
+    ExportError,
+    ErrorCodes
+)
+
+# Logging utilities
+from .logging_config import get_logger, InfralyzerLogger
+
+# Backward compatibility and utilities removed - use FinOpsEngine instead
+
+# Unified engine interface
 from .finops_engine import FinOpsEngine
 
-__version__ = "1.0.0"
+from .constants import VERSION
+__version__ = VERSION
 __all__ = [
     # Core components
+    "BaseQueryEngine",
+    "QueryEngineFactory", 
+    "QueryResultFormat",
     "DuckDBEngine",
-    "DataConfig", 
-    "DataExportType",
+    "PolarsEngine",
+    "AthenaEngine",
+    "DataConfig",
+    "DataExportType", 
     "FinOpsEngine",
     
     # Data management
     "S3DataManager",
-    "LocalDataManager", 
+    "LocalDataManager",
     "DataDownloader",
     
     # Analytics modules
@@ -105,16 +153,40 @@ __all__ = [
     
     # Utilities
     "CurrencyFormatter",
-    "NumberFormatter",
-    "DateFormatter", 
+    "NumberFormatter", 
+    "DateFormatter",
     "DataValidator",
     "ConfigValidator",
     "QueryProfiler",
     "CacheManager",
     "DataExporter",
     "ReportGenerator",
+    "handle_exception",
+    "log_and_raise",
+    "safe_execute",
     
-    # Existing components (backward compatibility)
-    "DataExportsPolars",
-    "DataPartitioner"
+    # SQL utilities
+    "SQLPatterns",
+    "QueryBuilder",
+    
+    # Enhanced configuration
+    "EnhancedConfigValidator",
+    
+    # Exception classes
+    "InfralyzerError",
+    "ConfigurationError", 
+    "DataSourceError",
+    "QueryExecutionError",
+    "AuthenticationError",
+    "ValidationError",
+    "EngineError",
+    "DataProcessingError",
+    "APIError",
+    "CacheError",
+    "ExportError",
+    "ErrorCodes",
+    
+    # Logging
+    "get_logger",
+    "InfralyzerLogger"
 ]

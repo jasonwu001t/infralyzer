@@ -109,7 +109,7 @@ class PolarsEngine(BaseQueryEngine):
     
     def query(self, 
               sql: str, 
-              format: QueryResultFormat = QueryResultFormat.RECORDS,
+              format: QueryResultFormat = QueryResultFormat.DATAFRAME,
               force_s3: bool = False) -> Union[List[Dict[str, Any]], pd.DataFrame, str, pa.Table, pl.DataFrame]:
         """
         Execute SQL query using Polars SQL engine.

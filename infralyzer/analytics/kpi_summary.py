@@ -19,7 +19,12 @@ class KPISummaryAnalytics:
     """
     
     def __init__(self, engine: DuckDBEngine):
-        """Initialize KPI Summary Analytics with DuckDB engine."""
+        """
+        Initialize KPI Summary Analytics with DuckDB engine.
+        
+        Args:
+            engine: DuckDB engine instance for query execution
+        """
         self.engine = engine
         self.config = engine.config
     

@@ -5,20 +5,34 @@ setup(
     version="1.0.0",
     packages=find_packages(),
     install_requires=[
-        "polars>=0.18.0",  # Optional for Polars engine
-        "boto3>=1.26.0", 
-        "s3fs>=2023.1.0",
-        "pyarrow>=10.0.0",
-        "duckdb>=0.8.0",   # Core engine
-        "pandas>=1.5.0",   # Core data handling
-        "fastapi>=0.100.0",  # API framework
-        "uvicorn>=0.23.0",   # ASGI server
+        # Core dependencies
+        "duckdb>=0.8.0",      # Core engine
+        "pandas>=1.5.0",      # Core data handling
+        "pyarrow>=10.0.0",    # Arrow format support
+        "boto3>=1.26.0",      # AWS integration
+        "s3fs>=2023.1.0",     # S3 filesystem
+        
+        # Optional engines
+        "polars>=0.18.0",     # Polars engine
+        
+        # API framework
+        "fastapi>=0.100.0",   # API framework
+        "uvicorn>=0.23.0",    # ASGI server
+        "pydantic>=2.0.0",    # Data validation
+        
+        # Utilities
+        "python-dateutil>=2.8.0",  # Date parsing
+        "requests>=2.25.0",   # HTTP requests
     ],
     python_requires=">=3.8",
     description="Infralyzer - Multi-engine FinOps analytics platform for AWS cost optimization with pluggable query engines (DuckDB, Polars, Athena)",
     # long_description=open("README.md").read(),
     # long_description_content_type="text/markdown",
-    keywords=["aws", "finops", "cost-optimization", "analytics", "duckdb", "polars", "athena", "infrastructure"],
+    keywords=[
+        "aws", "finops", "cost-optimization", "analytics", 
+        "duckdb", "polars", "athena", "infrastructure", 
+        "cloud-costs", "billing", "cur", "cost-and-usage-report"
+    ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
@@ -34,6 +48,11 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Environment :: Console",
+        "Environment :: Web Environment",
+        "Operating System :: OS Independent",
+        "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+        "Topic :: Scientific/Engineering :: Information Analysis",
     ],
     project_urls={
         "Source": "https://github.com/jasonwu001t/infralyzer",

@@ -39,6 +39,7 @@ class AthenaEngine(BaseQueryEngine):
         self.workgroup = workgroup
         self._athena_client = None
         self._s3_client = None
+        self._glue_client = None
         
         # Check credential expiration if provided
         if config.expiration:
@@ -82,38 +83,177 @@ class AthenaEngine(BaseQueryEngine):
             self._s3_client = session.client('s3')
         return self._s3_client
     
+    def _get_glue_client(self):
+        """Get AWS Glue client."""
+        if self._glue_client is None:
+            session = boto3.Session(
+                aws_access_key_id=self.config.aws_access_key_id,
+                aws_secret_access_key=self.config.aws_secret_access_key,
+                aws_session_token=self.config.aws_session_token,
+                region_name=self.config.aws_region or 'us-east-1',
+                profile_name=self.config.aws_profile
+            )
+            self._glue_client = session.client('glue')
+        return self._glue_client
+    
     def has_local_data(self) -> bool:
         """Athena doesn't support local data."""
         return False
     
-    def _create_table_if_not_exists(self) -> None:
-        """Create Athena table if it doesn't exist."""
-        # This is a simplified version - in production, you'd want to:
-        # 1. Check if table exists
-        # 2. Create table with proper schema based on CUR 2.0 structure
-        # 3. Handle partitioning properly
+    def _check_table_exists(self) -> bool:
+        """Check if table exists in Glue catalog."""
+        try:
+            glue_client = self._get_glue_client()
+            glue_client.get_table(
+                DatabaseName=self.database_name,
+                Name=self.config.table_name
+            )
+            return True
+        except glue_client.exceptions.EntityNotFoundException:
+            return False
+        except Exception:
+            return False
+    
+    def _create_glue_crawler(self) -> str:
+        """Create Glue Crawler for automatic schema discovery."""
+        crawler_name = f"{self.config.table_name}_crawler"
         
+        # S3 target path
+        s3_path = f"s3://{self.config.s3_bucket}/{self.config.s3_data_prefix}/"
+        
+        crawler_config = {
+            'Name': crawler_name,
+            'Role': f'arn:aws:iam::{self._get_account_id()}:role/service-role/AWSGlueServiceRole-DefaultRole',
+            'DatabaseName': self.database_name,
+            'Description': f'Auto-generated crawler for {self.config.table_name} CUR data',
+            'Targets': {
+                'S3Targets': [
+                    {
+                        'Path': s3_path,
+                        'Exclusions': []
+                    }
+                ]
+            },
+            'TablePrefix': '',
+            'SchemaChangePolicy': {
+                'UpdateBehavior': 'UPDATE_IN_DATABASE',
+                'DeleteBehavior': 'LOG'
+            },
+            'RecrawlPolicy': {
+                'RecrawlBehavior': 'CRAWL_EVERYTHING'
+            },
+            'LineageConfiguration': {
+                'CrawlerLineageSettings': 'DISABLE'
+            }
+        }
+        
+        try:
+            glue_client = self._get_glue_client()
+            
+            # Delete existing crawler if it exists
+            try:
+                glue_client.delete_crawler(Name=crawler_name)
+                print(f"Deleted existing crawler: {crawler_name}")
+                time.sleep(2)  # Wait for deletion
+            except glue_client.exceptions.EntityNotFoundException:
+                pass
+            
+            # Create new crawler
+            glue_client.create_crawler(**crawler_config)
+            print(f"Created Glue Crawler: {crawler_name}")
+            return crawler_name
+            
+        except Exception as e:
+            # Fallback: try with a simpler role assumption
+            try:
+                # Use a more generic role path that might exist
+                crawler_config['Role'] = 'arn:aws:iam::*:role/AWSGlueServiceRole*'
+                glue_client.create_crawler(**crawler_config)
+                return crawler_name
+            except Exception as e2:
+                print(f"Warning: Could not create Glue Crawler: {e}")
+                print(f"Fallback failed: {e2}")
+                return None
+    
+    def _get_account_id(self) -> str:
+        """Get AWS Account ID."""
+        try:
+            sts_client = boto3.client('sts',
+                aws_access_key_id=self.config.aws_access_key_id,
+                aws_secret_access_key=self.config.aws_secret_access_key,
+                aws_session_token=self.config.aws_session_token,
+                region_name=self.config.aws_region or 'us-east-1'
+            )
+            return sts_client.get_caller_identity()['Account']
+        except:
+            return "123456789012"  # Fallback
+    
+    def _run_crawler_and_wait(self, crawler_name: str, max_wait: int = 300) -> bool:
+        """Run Glue Crawler and wait for completion."""
+        if not crawler_name:
+            return False
+            
+        try:
+            glue_client = self._get_glue_client()
+            
+            # Start crawler
+            glue_client.start_crawler(Name=crawler_name)
+            print(f"Started Glue Crawler: {crawler_name}")
+            
+            # Wait for completion
+            start_time = time.time()
+            while time.time() - start_time < max_wait:
+                response = glue_client.get_crawler(Name=crawler_name)
+                state = response['Crawler']['State']
+                
+                if state == 'READY':
+                    print(f"Glue Crawler completed successfully")
+                    return True
+                elif state in ['STOPPING', 'STOPPED']:
+                    print(f"Glue Crawler stopped: {state}")
+                    return False
+                    
+                print(f"Crawler state: {state} (waiting...)")
+                time.sleep(10)
+            
+            print(f"Crawler timed out after {max_wait} seconds")
+            return False
+            
+        except Exception as e:
+            print(f"Error running crawler: {e}")
+            return False
+    
+    def _create_table_if_not_exists(self) -> None:
+        """Create Athena table using Glue Crawler for schema discovery."""
+        
+        # Check if table already exists
+        if self._check_table_exists():
+            print(f"Athena table '{self.config.table_name}' already exists (discovered by Glue)")
+            return
+        
+        print(f"Table '{self.config.table_name}' not found. Using Glue Crawler for schema discovery...")
+        
+        # Create and run Glue Crawler
+        crawler_name = self._create_glue_crawler()
+        if crawler_name:
+            success = self._run_crawler_and_wait(crawler_name)
+            if success:
+                print(f"Athena table '{self.config.table_name}' created with full schema via Glue Crawler")
+            else:
+                print(f"Warning: Glue Crawler failed. Table may not be available.")
+        else:
+            print(f"Warning: Could not create Glue Crawler. Using manual table creation...")
+            # Fallback to simplified manual creation if Glue fails
+            self._create_simple_table_fallback()
+    
+    def _create_simple_table_fallback(self):
+        """Fallback method: create table with basic schema if Glue fails."""
         create_table_sql = f"""
         CREATE EXTERNAL TABLE IF NOT EXISTS {self.config.table_name} (
-            -- This is a simplified schema - you'd want the full CUR 2.0 schema
-            line_item_usage_start_date string,
-            line_item_product_code string,
-            line_item_usage_type string,
-            line_item_operation string,
-            line_item_availability_zone string,
-            line_item_resource_id string,
-            line_item_usage_amount double,
-            line_item_normalization_factor double,
-            line_item_normalized_usage_amount double,
-            line_item_currency_code string,
-            line_item_unblended_rate string,
             line_item_unblended_cost double,
-            line_item_blended_rate string,
-            line_item_blended_cost double,
             product_servicecode string,
-            product_servicename string,
-            pricing_term string,
-            pricing_unit string
+            line_item_usage_start_date string,
+            line_item_resource_id string
         )
         STORED AS PARQUET
         LOCATION 's3://{self.config.s3_bucket}/{self.config.s3_data_prefix}/'
@@ -121,9 +261,9 @@ class AthenaEngine(BaseQueryEngine):
         
         try:
             self._execute_athena_query(create_table_sql)
-            print(f"Athena table '{self.config.table_name}' created/verified")
+            print(f"Fallback: Created simple Athena table '{self.config.table_name}'")
         except Exception as e:
-            print(f"Warning: Could not create/verify Athena table: {e}")
+            print(f"Warning: Fallback table creation failed: {e}")
     
     def _execute_athena_query(self, sql: str, wait_for_completion: bool = True) -> str:
         """Execute query in Athena and return execution ID."""
@@ -235,7 +375,7 @@ class AthenaEngine(BaseQueryEngine):
     
     def query(self, 
               sql: str, 
-              format: QueryResultFormat = QueryResultFormat.RECORDS,
+              format: QueryResultFormat = QueryResultFormat.DATAFRAME,
               force_s3: bool = False) -> Union[List[Dict[str, Any]], pd.DataFrame, str, Any]:
         """
         Execute SQL query using AWS Athena.
