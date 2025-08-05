@@ -23,171 +23,70 @@
 
 ### System Design
 
-Infralyzer follows a modern, layered architecture designed for scalability and maintainability:
+Infralyzer follows a clean, modern architecture with clear data flow:
+
+**📈 Simple Flow:** AWS S3 → DataManager → Query Engines → FinOpsEngine → Analytics/API
 
 ```mermaid
 graph TB
-    %% === DATA SOURCES ===
-    subgraph DataSources ["📂 Data Sources"]
-        S3[("☁️ AWS S3<br/>Cost Data Exports")]
-        CUR[("📊 CUR 2.0<br/>Cost & Usage Reports")]
-        FOCUS[("🎯 FOCUS 1.0<br/>FinOps Standard")]
-        PRICING[("💰 AWS Pricing API<br/>Real-time Pricing")]
-        SAVINGS[("💳 Savings Plans API<br/>Discount Data")]
-    end
+    %% Data Sources
+    S3[("☁️ AWS S3<br/>CUR Data")]
+    API[("💰 AWS APIs<br/>Pricing & Savings")]
 
-    %% === CONFIGURATION LAYER ===
-    subgraph ConfigLayer ["🔧 Configuration Layer"]
-        DC[DataConfig<br/>📋 Central Configuration]
-        DET[DataExportType<br/>🏷️ CUR/FOCUS/COH Types]
-        VALIDATOR[ConfigValidator<br/>✅ Validation Logic]
-    end
+    %% Core Components
+    CONFIG["🔧 DataConfig<br/>Configuration"]
+    DATA_MGR["💾 DataManager<br/>S3 & Local Cache"]
+    AUTH["🔐 AWS Auth<br/>Credentials"]
 
-    %% === DATA MANAGEMENT LAYER ===
-    subgraph DataMgmt ["💾 Data Management Layer"]
-        S3MGR[S3DataManager<br/>📡 S3 Discovery & Access]
-        LOCALMGR[LocalDataManager<br/>💿 Local Cache]
-        DOWNLOADER[DataDownloader<br/>⬇️ S3 → Local Sync]
-        PRICEMGR[PricingApiManager<br/>💰 Real-time Pricing]
-        SAVINGSMGR[SavingsApiManager<br/>💳 Discount Management]
-    end
+    %% Query Engines
+    ENGINES["🧠 Query Engines<br/>DuckDB | Polars | Athena"]
 
-    %% === AUTHENTICATION LAYER ===
-    subgraph AuthLayer ["🔐 Authentication Layer"]
-        AWS_AUTH[AWS Authentication<br/>🔑 IAM/STS/Profiles]
-        CRED_CACHE[Credential Cache<br/>⏰ Token Management]
-    end
+    %% Main Interface
+    FINOPS["🎯 FinOpsEngine<br/>Main Interface"]
 
-    %% === QUERY ENGINES ===
-    subgraph QueryEngines ["🧠 Query Engine Layer"]
-        DUCKDB[DuckDBEngine<br/>🦆 Fast Analytics]
-        POLARS[PolarsEngine<br/>⚡ Modern DataFrames]
-        ATHENA[AthenaEngine<br/>☁️ Serverless Queries]
-        FACTORY[QueryEngineFactory<br/>🏭 Engine Selection]
-    end
+    %% Analytics & API
+    ANALYTICS["📊 Analytics Modules<br/>KPI | Spend | Optimization"]
+    FASTAPI["🌐 FastAPI<br/>REST Endpoints"]
 
-    %% === UNIFIED INTERFACE ===
-    subgraph Interface ["🎯 Unified Interface"]
-        FINOPS[FinOpsEngine<br/>🚀 Main Interface]
-        METHODS["query / query_json / query_csv<br/>📝 Unified Query Methods"]
-    end
+    %% Utilities
+    UTILS["🛠️ Utilities<br/>Formatters | Validators"]
+    LOCAL[("💿 Local Cache<br/>Cost Savings")]
 
-    %% === ANALYTICS MODULES ===
-    subgraph Analytics ["📊 Analytics Modules"]
-        KPI[KPISummaryAnalytics<br/>⭐ Dashboard Metrics]
-        SPEND[SpendAnalytics<br/>💰 Cost Visibility]
-        OPTIMIZATION[OptimizationAnalytics<br/>⚡ Cost Optimization]
-        ALLOCATION[AllocationAnalytics<br/>🏷️ Cost Allocation]
-        DISCOUNTS[DiscountAnalytics<br/>💳 Discount Tracking]
-        AI_ANALYTICS[AIAnalytics<br/>🤖 ML Insights]
-        MCP[MCPIntegration<br/>🔌 Natural Language]
-    end
-
-    %% === API LAYER ===
-    subgraph APILayer ["🌐 Modern API Layer"]
-        FASTAPI[FastAPI Application<br/>🚀 Production Server]
-        subgraph APIEndpoints ["API Endpoints"]
-            QUERY_EP[🔍 Query Engine<br/>POST /query]
-            MCP_EP[🤖 Natural Language<br/>POST /mcp/query]
-            KPI_EP[📊 KPI Dashboard<br/>GET /kpi/summary]
-            SPEND_EP[💰 Spend Analytics<br/>GET /spend/*]
-            OPT_EP[⚡ Optimization<br/>GET /optimization/*]
-            AI_EP[🤖 AI Insights<br/>GET /ai/*]
-        end
-        DOCS[📚 OpenAPI Docs<br/>🌐 /docs & /redoc]
-    end
-
-    %% === UTILITIES ===
-    subgraph Utilities ["🛠️ Utilities & Tools"]
-        FORMATTERS[Formatters<br/>💱 Currency/Date/Number]
-        VALIDATORS[Validators<br/>✅ Data Quality]
-        PERFORMANCE[Performance<br/>⏱️ Query Profiling]
-        EXPORTERS[Export Tools<br/>📤 Reports & Data]
-        LOGGING[Logging System<br/>📝 Structured Logs]
-        EXCEPTIONS[Exception Handling<br/>❌ Error Management]
-    end
-
-    %% === LOCAL STORAGE ===
-    LOCAL[("💿 Local Cache<br/>./test_local_data/")]
-
-    %% === CONNECTIONS ===
-    %% Data Sources to Management
-    S3 --> S3MGR
-    PRICING --> PRICEMGR
-    SAVINGS --> SAVINGSMGR
-
-    %% Configuration Flow
-    DC --> DUCKDB
-    DC --> POLARS
-    DC --> ATHENA
-    DET --> DC
-    VALIDATOR --> DC
-
-    %% Authentication Flow
-    AWS_AUTH --> DUCKDB
-    AWS_AUTH --> ATHENA
-    AWS_AUTH --> S3MGR
-    AWS_AUTH --> PRICEMGR
-    AWS_AUTH --> SAVINGSMGR
-
-    %% Data Management Flow
-    S3MGR --> DOWNLOADER
-    DOWNLOADER --> LOCALMGR
-    LOCALMGR --> LOCAL
-    LOCALMGR --> DUCKDB
-    S3MGR --> DUCKDB
-    S3MGR --> ATHENA
-    PRICEMGR --> DUCKDB
-    SAVINGSMGR --> DUCKDB
-
-    %% Engine Factory Flow
-    FACTORY --> DUCKDB
-    FACTORY --> POLARS
-    FACTORY --> ATHENA
-
-    %% Interface Flow
-    FINOPS --> FACTORY
-    FINOPS --> DUCKDB
-    FINOPS --> POLARS
-    FINOPS --> ATHENA
-
-    %% Analytics Flow
-    FINOPS --> KPI
-    FINOPS --> SPEND
-    FINOPS --> OPTIMIZATION
-    FINOPS --> ALLOCATION
-    FINOPS --> DISCOUNTS
-    FINOPS --> AI_ANALYTICS
-    FINOPS --> MCP
-
-    %% API Flow
-    FASTAPI --> FINOPS
-    QUERY_EP --> FINOPS
-    MCP_EP --> FINOPS
-    KPI_EP --> FINOPS
-    SPEND_EP --> FINOPS
-    OPT_EP --> FINOPS
-    AI_EP --> FINOPS
-
-    %% Utilities Support
-    LOGGING --> FINOPS
-    EXCEPTIONS --> FINOPS
-    PERFORMANCE --> FINOPS
+    %% Connections
+    S3 --> DATA_MGR
+    API --> DATA_MGR
+    CONFIG --> ENGINES
+    AUTH --> ENGINES
+    DATA_MGR --> LOCAL
+    DATA_MGR --> ENGINES
+    ENGINES --> FINOPS
+    FINOPS --> ANALYTICS
+    FINOPS --> FASTAPI
+    UTILS --> FINOPS
 ```
 
-### 🏛️ Architecture Layers
+### 🎯 Key Components
 
-| Layer                  | Components                                         | Purpose                       | Key Features                                   |
-| ---------------------- | -------------------------------------------------- | ----------------------------- | ---------------------------------------------- |
-| **📂 Data Sources**    | S3, CUR 2.0, FOCUS 1.0, Pricing API, Savings API   | External data access          | Multi-format support, real-time pricing        |
-| **🔧 Configuration**   | `DataConfig`, `DataExportType`, Validators         | Centralized config management | Type-safe configuration, validation            |
-| **💾 Data Management** | S3Manager, LocalManager, Downloaders, API Managers | Data orchestration            | Smart caching, S3 optimization                 |
-| **🔐 Authentication**  | AWS Auth, Credential Cache                         | Secure AWS access             | IAM/STS support, credential rotation           |
-| **🧠 Query Engines**   | DuckDB, Polars, Athena, Factory                    | SQL execution                 | Multi-engine support, performance optimization |
-| **🎯 Interface**       | `FinOpsEngine`                                     | Unified API                   | Single entry point, consistent interface       |
-| **📊 Analytics**       | 7 specialized modules                              | Domain expertise              | KPI, optimization, AI insights                 |
-| **🌐 API**             | FastAPI, 6+ endpoints                              | Production REST API           | OpenAPI docs, modern web standards             |
-| **🛠️ Utilities**       | Formatters, Validators, Monitoring                 | Support functions             | Logging, performance, error handling           |
+- **🔧 DataConfig**: Central configuration for S3, local paths, and AWS settings
+- **💾 DataManager**: Handles S3 discovery, local caching, and data synchronization
+- **🧠 Query Engines**: Choose between DuckDB (fast), Polars (modern), or Athena (scale)
+- **🎯 FinOpsEngine**: Your main interface - handles all queries and analytics
+- **📊 Analytics**: 7 specialized modules for KPI, spend, optimization insights
+- **🌐 FastAPI**: Production REST API with OpenAPI documentation
+
+### 🚀 Usage Flow
+
+```mermaid
+graph LR
+    A["1️⃣ Configure<br/>DataConfig"] --> B["2️⃣ Initialize<br/>FinOpsEngine"]
+    B --> C["3️⃣ Query<br/>engine.query()"]
+    C --> D["4️⃣ Analyze<br/>Results"]
+
+    style A fill:#e1f5fe
+    style B fill:#f3e5f5
+    style C fill:#e8f5e8
+    style D fill:#fff3e0
+```
 
 ## 🚀 Quick Start
 
