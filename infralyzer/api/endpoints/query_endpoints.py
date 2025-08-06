@@ -47,13 +47,13 @@ class QueryRequest(BaseModel):
     engine: Optional[str] = Field(
         "duckdb", 
         description="Query engine: 'duckdb' (default), 'polars', or 'athena'",
-        regex="^(duckdb|polars|athena)$"
+        pattern="^(duckdb|polars|athena)$"
     )
     
     output_format: Optional[str] = Field(
         "json", 
         description="Output format: 'json' (default), 'csv', 'dataframe_json'",
-        regex="^(json|csv|dataframe_json)$"
+        pattern="^(json|csv|dataframe_json)$"
     )
     
     limit: Optional[int] = Field(
