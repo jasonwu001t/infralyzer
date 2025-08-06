@@ -142,8 +142,7 @@ def start_development_server(app):
     
     uvicorn.run(
         "main:app",
-        # host="0.0.0.0",
-        host="127.0.0.1",
+        host="127.0.0.1",  # Keep 127.0.0.1 for Windows compatibility
         port=8000,
         reload=True,
         log_level="info"
