@@ -25,6 +25,8 @@ router = APIRouter()
 
 class ModelConfigurationRequest(BaseModel):
     """Request model for AI model configuration."""
+    model_config = {"protected_namespaces": ()}
+    
     model_id: BedrockModel = Field(description="Bedrock model to use")
     max_tokens: int = Field(4096, ge=1, le=8192, description="Maximum tokens to generate")
     temperature: float = Field(0.1, ge=0.0, le=1.0, description="Randomness in generation")
@@ -50,14 +52,14 @@ class ChatRequest(BaseModel):
     message: str = Field(description="User message", max_length=4000)
     knowledge_base_id: Optional[str] = Field(None, description="Knowledge base ID to use for context")
     conversation_id: Optional[str] = Field(None, description="Conversation ID for context")
-    model_config: Optional[ModelConfigurationRequest] = Field(None, description="Model configuration")
+    model_configuration: Optional[ModelConfigurationRequest] = Field(None, description="Model configuration")
     include_sources: bool = Field(True, description="Include knowledge sources in response")
 
 
 class StructuredQueryRequest(BaseModel):
     """Request model for structured query generation."""
     user_query: str = Field(description="Natural language query about costs", max_length=1000)
-    model_config: Optional[ModelConfigurationRequest] = Field(None, description="Model configuration")
+    model_configuration: Optional[ModelConfigurationRequest] = Field(None, description="Model configuration")
     include_examples: bool = Field(True, description="Include example queries in prompt")
     target_table: str = Field("CUR", description="Target table name for queries")
 
@@ -247,14 +249,14 @@ async def chat_with_ai(
     try:
         # Convert request model to internal configuration
         model_config = None
-        if request.model_config:
+        if request.model_configuration:
             model_config = ModelConfiguration(
-                model_id=request.model_config.model_id,
-                max_tokens=request.model_config.max_tokens,
-                temperature=request.model_config.temperature,
-                top_p=request.model_config.top_p,
-                top_k=request.model_config.top_k,
-                stop_sequences=request.model_config.stop_sequences
+                model_id=request.model_configuration.model_id,
+                max_tokens=request.model_configuration.max_tokens,
+                temperature=request.model_configuration.temperature,
+                top_p=request.model_configuration.top_p,
+                top_k=request.model_configuration.top_k,
+                stop_sequences=request.model_configuration.stop_sequences
             )
         
         if request.knowledge_base_id:
@@ -299,14 +301,14 @@ async def generate_structured_query(
     try:
         # Convert request model to internal configuration
         model_config = None
-        if request.model_config:
+        if request.model_configuration:
             model_config = ModelConfiguration(
-                model_id=request.model_config.model_id,
-                max_tokens=request.model_config.max_tokens,
-                temperature=request.model_config.temperature,
-                top_p=request.model_config.top_p,
-                top_k=request.model_config.top_k,
-                stop_sequences=request.model_config.stop_sequences
+                model_id=request.model_configuration.model_id,
+                max_tokens=request.model_configuration.max_tokens,
+                temperature=request.model_configuration.temperature,
+                top_p=request.model_configuration.top_p,
+                top_k=request.model_configuration.top_k,
+                stop_sequences=request.model_configuration.stop_sequences
             )
         
         result = bedrock_handler.generate_cur_structured_query(
