@@ -15,8 +15,12 @@ from datetime import datetime
 
 from ...finops_engine import FinOpsEngine
 from ...utils.bedrock_handler import BedrockHandler, BedrockModel, ModelConfiguration, KnowledgeBaseConfig
+from ...exceptions import InfralyzerError
 from ..dependencies import get_finops_engine
 from ..base_models import BaseResponse, ResponseStatus
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -80,6 +84,26 @@ class StructuredQueryResponse(BaseModel):
     model_used: str = Field(description="Model used for generation")
     confidence: float = Field(description="Confidence score")
     generated_at: str = Field(description="Generation timestamp")
+
+
+class FinOpsChatRequest(BaseModel):
+    """Request model for FinOps expert chatbot interactions."""
+    message: str = Field(description="User message about FinOps, cost optimization, or AWS billing", max_length=4000)
+    conversation_id: Optional[str] = Field(None, description="Conversation ID for context")
+    model_configuration: Optional[ModelConfigurationRequest] = Field(None, description="Model configuration")
+    include_examples: bool = Field(True, description="Include FinOps examples and best practices")
+    context_type: str = Field("general", description="Context type: general, cost_analysis, optimization, ri_sp")
+
+
+class FinOpsChatResponse(BaseModel):
+    """Response model for FinOps expert chatbot."""
+    response: str = Field(description="FinOps expert response")
+    conversation_id: str = Field(description="Conversation ID")
+    recommendations: List[str] = Field(description="Specific FinOps recommendations")
+    related_topics: List[str] = Field(description="Related FinOps topics to explore")
+    model_used: str = Field(description="Model used for generation")
+    context_type: str = Field(description="Context type used")
+    timestamp: str = Field(description="Response timestamp")
 
 
 # Helper function to get Bedrock handler
@@ -284,6 +308,84 @@ async def chat_with_ai(
         raise HTTPException(status_code=500, detail=f"Error in chat: {str(e)}")
 
 
+@router.post("/bedrock/finops-expert", response_model=FinOpsChatResponse)
+async def chat_with_finops_expert(
+    request: FinOpsChatRequest,
+    bedrock_handler: BedrockHandler = Depends(get_bedrock_handler)
+):
+    """
+    Chat with FinOps expert AI for cost optimization and AWS billing guidance.
+    
+    **Features:**
+    - Senior FinOps expert with 10+ years experience
+    - Specialized in AWS cost optimization and billing analysis
+    - Provides actionable recommendations and best practices
+    - Context-aware responses (general, cost_analysis, optimization, ri_sp)
+    - Extracts specific recommendations and related topics
+    
+    **Use Cases:**
+    - Cost optimization strategies and recommendations
+    - Reserved Instance and Savings Plan guidance
+    - AWS billing analysis and cost allocation
+    - FinOps framework implementation advice
+    - Cost anomaly investigation and resolution
+    """
+    try:
+        # Convert request model to internal configuration
+        model_config = None
+        if request.model_configuration:
+            model_config = ModelConfiguration(
+                model_id=request.model_configuration.model_id,
+                max_tokens=request.model_configuration.max_tokens,
+                temperature=request.model_configuration.temperature,
+                top_p=request.model_configuration.top_p,
+                top_k=request.model_configuration.top_k,
+                stop_sequences=request.model_configuration.stop_sequences
+            )
+        
+        # Call the FinOps expert chat method
+        result = bedrock_handler.chat_with_finops_expert(
+            message=request.message,
+            conversation_id=request.conversation_id,
+            model_config=model_config,
+            include_examples=request.include_examples,
+            context_type=request.context_type
+        )
+        
+        return FinOpsChatResponse(
+            response=result['response'],
+            conversation_id=result['conversation_id'],
+            recommendations=result['recommendations'],
+            related_topics=result['related_topics'],
+            model_used=result['model_used'],
+            context_type=result['context_type'],
+            timestamp=result['timestamp']
+        )
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except InfralyzerError as e:
+        # Handle FinOps expert errors
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "finops_expert_error",
+                "message": str(e),
+                "suggestions": [
+                    "Try rephrasing your FinOps question more specifically",
+                    "Use a different AI model for better results",
+                    "Specify a context type (cost_analysis, optimization, ri_sp)",
+                    "Ensure your question is related to AWS costs or FinOps"
+                ]
+            }
+        )
+    except Exception as e:
+        # Handle unexpected errors
+        logger.error(f"Unexpected error in FinOps expert chat: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
 @router.post("/bedrock/generate-query", response_model=StructuredQueryResponse)
 async def generate_structured_query(
     request: StructuredQueryRequest,
@@ -317,6 +419,18 @@ async def generate_structured_query(
             include_examples=request.include_examples
         )
         
+        # Check if the query was rejected for being non-CUR related
+        if 'error' in result['structured_query'] and result['structured_query']['error'] == 'not_cur_related':
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "non_cur_query",
+                    "message": result['structured_query']['message'],
+                    "suggestions": result['structured_query']['suggestions'],
+                    "original_query": result['original_query']
+                }
+            )
+        
         return StructuredQueryResponse(
             structured_query=result['structured_query'],
             original_query=result['original_query'],
@@ -325,8 +439,28 @@ async def generate_structured_query(
             generated_at=result['generated_at']
         )
         
+    except HTTPException:
+        # Re-raise HTTP exceptions (like our 400 for non-CUR queries)
+        raise
+    except InfralyzerError as e:
+        # Handle AI model errors (parsing failures, missing fields, etc.)
+        raise HTTPException(
+            status_code=422, 
+            detail={
+                "error": "ai_model_error",
+                "message": str(e),
+                "suggestions": [
+                    "Try rephrasing your query more clearly",
+                    "Use a different AI model (e.g., Claude 4 Opus for complex queries)",
+                    "Break complex queries into simpler parts",
+                    "Ensure your query is about AWS costs, usage, or billing"
+                ]
+            }
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error generating query: {str(e)}")
+        # Handle unexpected system errors
+        logger.error(f"Unexpected error in query generation: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @router.post("/bedrock/cur/knowledge-base", response_model=Dict[str, Any])
@@ -446,14 +580,30 @@ async def _ingest_knowledge_base_data(bedrock_handler: BedrockHandler, knowledge
 def _get_model_recommendation(model: BedrockModel) -> str:
     """Get usage recommendation for a model."""
     recommendations = {
-        BedrockModel.CLAUDE_3_5_SONNET: "Best overall performance for complex reasoning and analysis",
-        BedrockModel.CLAUDE_3_SONNET: "Good balance of capability and speed for most tasks",
-        BedrockModel.CLAUDE_3_HAIKU: "Fast and efficient for simple queries and summaries",
-        BedrockModel.CLAUDE_3_OPUS: "Highest capability for complex analysis and reasoning",
-        BedrockModel.TITAN_TEXT_G1_EXPRESS: "Cost-effective for basic text generation",
-        BedrockModel.TITAN_TEXT_G1_LARGE: "Amazon's flagship model for general text tasks",
-        BedrockModel.COHERE_COMMAND_TEXT: "Good for conversational and command-following tasks",
-        BedrockModel.LLAMA2_70B_CHAT: "Open-source option for conversational AI",
-        BedrockModel.AI21_J2_ULTRA: "Strong performance for business and analytical tasks"
+        # Claude 4.0 Series (Latest & Most Powerful)
+        BedrockModel.CLAUDE_4_OPUS: "🚀 Most powerful model for advanced coding and complex reasoning tasks",
+        BedrockModel.CLAUDE_4_SONNET: "⚡ Balanced performance and cost for high-volume production workloads",
+        
+        # Claude 3.7 Series (Hybrid Reasoning)
+        BedrockModel.CLAUDE_3_7_SONNET: "🧠 Hybrid reasoning with extended thinking modes for complex problem-solving",
+        
+        # Claude 3.5 Series (Optimized Performance)
+        BedrockModel.CLAUDE_3_5_SONNET: "💎 Excellent performance for complex reasoning and analysis",
+        BedrockModel.CLAUDE_3_5_HAIKU: "⚡ Fast and efficient for quick responses and simple tasks",
+        
+        # Claude 3.0 Series (Foundational)
+        BedrockModel.CLAUDE_3_OPUS: "🎯 High capability for complex analysis and reasoning",
+        BedrockModel.CLAUDE_3_SONNET: "⚖️ Good balance of capability and speed for most tasks",
+        BedrockModel.CLAUDE_3_HAIKU: "🏃 Fast and efficient for simple queries and summaries",
+        
+        # Other Models
+        BedrockModel.TITAN_TEXT_G1_EXPRESS: "💰 Cost-effective for basic text generation",
+        BedrockModel.TITAN_TEXT_G1_LARGE: "🏢 Amazon's flagship model for general text tasks",
+        BedrockModel.COHERE_COMMAND_TEXT: "💬 Good for conversational and command-following tasks",
+        BedrockModel.COHERE_COMMAND_LIGHT_TEXT: "🪶 Lightweight option for simple conversational tasks",
+        BedrockModel.LLAMA2_70B_CHAT: "🔓 Open-source option for conversational AI",
+        BedrockModel.LLAMA2_13B_CHAT: "🔓 Smaller open-source option for basic conversations",
+        BedrockModel.AI21_J2_ULTRA: "📊 Strong performance for business and analytical tasks",
+        BedrockModel.AI21_J2_MID: "📈 Mid-tier performance for general business tasks"
     }
     return recommendations.get(model, "General purpose AI model")

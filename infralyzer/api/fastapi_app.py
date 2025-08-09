@@ -18,7 +18,8 @@ from .endpoints import (
     mcp_router,
     ai_router,
     query_router,
-    bedrock_router
+    bedrock_router,
+    join_router
 )
 
 
@@ -101,6 +102,7 @@ class FinOpsAPI:
         app.include_router(ai_router, prefix="/api/v1/finops", tags=["AI Recommendations"])
         app.include_router(query_router, prefix="/api/v1/finops", tags=["Query Engine"])
         app.include_router(bedrock_router, prefix="/api/v1/finops", tags=["AWS Bedrock Chatbot"])
+        app.include_router(join_router, prefix="/api/v1/finops/joins", tags=["Table Joins"])
         
         # Add health check endpoint
         @app.get("/health", tags=["Health"])
